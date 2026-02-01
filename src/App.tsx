@@ -29,7 +29,7 @@ function App() {
   const [showGame, setShowGame] = useState(false);
   const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
-  const { registeredMenus, gameStarted, reset: resetMenu, startGame } = useMenuStore();
+  const { registeredMenus, gameStarted, reset: resetMenu, startGame, maxMenuSlots } = useMenuStore();
   const { openShop, reset: resetShop } = useShopStore();
 
   const handleGameStart = () => {
@@ -67,9 +67,11 @@ function App() {
           borderRight: '2px solid #404040',
           boxShadow: '1px 1px 0 #000000',
           margin: '4px',
-          minHeight: 'calc(100vh - 8px)',
+          height: 'calc(100vh - 8px)',
+          maxHeight: 'calc(100vh - 8px)',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         {/* 内側のボーダー */}
@@ -82,6 +84,7 @@ function App() {
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
+            overflow: 'hidden',
           }}
         >
           {/* タイトルバー */}
@@ -93,6 +96,8 @@ function App() {
               alignItems: 'center',
               justifyContent: 'space-between',
               margin: '2px',
+              height: '27px',
+              flexShrink: 0,
             }}
           >
             <span
@@ -166,6 +171,8 @@ function App() {
               justifyContent: 'center',
               padding: '4px 8px',
               margin: '0 2px',
+              height: '72px',
+              flexShrink: 0,
             }}
           >
             <DayClock />
@@ -178,10 +185,11 @@ function App() {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              padding: showGame ? '8px' : '0',
+              padding: '8px',
               flex: 1,
               position: 'relative',
               margin: '0 2px',
+              overflow: 'hidden',
             }}
           >
         {showGame ? (
@@ -271,40 +279,65 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '4px 16px',
+              gap: '4px',
+              padding: '4px 8px',
               margin: '2px 2px 0 2px',
+              height: '36px',
+              flexShrink: 0,
             }}
           >
             <span style={{ fontSize: '11px', color: '#000000', fontWeight: 'bold' }}>
               メニュー:
             </span>
-            {registeredMenus.map((menu) => (
-              <Panel3D
-                key={menu.id}
-                inset
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 6px',
-                  backgroundColor: '#FFFFFF',
-                }}
-              >
-                <img
-                  src={menu.iconUrl}
-                  alt={menu.name}
-                  style={{ width: '20px', height: '20px' }}
-                />
-                <span style={{ fontSize: '11px', color: '#000000' }}>{menu.name}</span>
-                <span style={{ fontSize: '10px', color: '#808080' }}>{menu.price}円</span>
-              </Panel3D>
-            ))}
-            {registeredMenus.length === 0 && (
-              <span style={{ fontSize: '11px', color: '#808080' }}>
-                メニューを選択してください
-              </span>
-            )}
+            {Array.from({ length: maxMenuSlots }).map((_, index) => {
+              const menu = registeredMenus[index];
+              return menu ? (
+                <Panel3D
+                  key={menu.id}
+                  inset
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 6px',
+                    backgroundColor: '#FFFFFF',
+                    width: '90px',
+                    height: '24px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <img
+                    src={menu.iconUrl}
+                    alt={menu.name}
+                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{menu.name}</span>
+                  <span style={{ fontSize: '9px', color: '#808080', whiteSpace: 'nowrap', flexShrink: 0 }}>{menu.price}円</span>
+                </Panel3D>
+              ) : (
+                <div
+                  key={`empty-${index}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px 6px',
+                    backgroundColor: '#E8E8E8',
+                    borderTop: '1px solid #808080',
+                    borderLeft: '1px solid #808080',
+                    borderBottom: '1px solid #FFFFFF',
+                    borderRight: '1px solid #FFFFFF',
+                    width: '90px',
+                    height: '24px',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                  }}
+                  onClick={openShop}
+                >
+                  <span style={{ fontSize: '10px', color: '#808080' }}>+ 追加</span>
+                </div>
+              );
+            })}
           </Panel3D>
 
           {/* コントロールパネル */}
@@ -312,9 +345,12 @@ function App() {
             style={{
               display: 'flex',
               justifyContent: 'center',
+              alignItems: 'center',
               gap: '8px',
               padding: '6px 16px',
               margin: '2px',
+              height: '40px',
+              flexShrink: 0,
             }}
           >
             <WindowButton

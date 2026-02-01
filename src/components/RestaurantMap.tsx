@@ -14,6 +14,11 @@ import {
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
 
+// カメラ制御の定数
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.0;
+const ZOOM_SPEED = 0.001;
+
 export function RestaurantMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
@@ -26,6 +31,19 @@ export function RestaurantMap() {
   const cookSpritesRef = useRef<Map<string, CookSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
+
+  // カメラ制御用
+  const worldContainerRef = useRef<Container | null>(null);
+  const cameraStateRef = useRef({
+    scale: 1,
+    x: 0,
+    y: 0,
+    isDragging: false,
+    lastX: 0,
+    lastY: 0,
+    // ピンチズーム用
+    lastPinchDistance: 0,
+  });
 
   // Store
   const { addStaff, addCook } = useEntityStore();
@@ -164,9 +182,14 @@ export function RestaurantMap() {
 
         containerRef.current.appendChild(app.canvas);
 
+        // ワールドコンテナ（カメラ制御用）
+        const worldContainer = new Container();
+        app.stage.addChild(worldContainer);
+        worldContainerRef.current = worldContainer;
+
         // 静的オブジェクト用コンテナ
         const staticContainer = new Container();
-        app.stage.addChild(staticContainer);
+        worldContainer.addChild(staticContainer);
 
         // 入口
         const entrance = new EntranceSprite(restaurant.entrancePosition);
@@ -189,8 +212,154 @@ export function RestaurantMap() {
 
         // 動的オブジェクト用コンテナ
         const dynamicContainer = new Container();
-        app.stage.addChild(dynamicContainer);
+        worldContainer.addChild(dynamicContainer);
         dynamicContainerRef.current = dynamicContainer;
+
+        // カメラ制御のイベントハンドラー
+        const canvas = app.canvas;
+        const camera = cameraStateRef.current;
+
+        // ズーム適用関数
+        const applyCamera = () => {
+          if (!worldContainerRef.current) return;
+          const wc = worldContainerRef.current;
+          wc.scale.set(camera.scale);
+          wc.x = camera.x;
+          wc.y = camera.y;
+        };
+
+        // マウスホイールでズーム
+        const handleWheel = (e: WheelEvent) => {
+          e.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          // ズーム前のワールド座標
+          const worldX = (mouseX - camera.x) / camera.scale;
+          const worldY = (mouseY - camera.y) / camera.scale;
+
+          // ズーム量を計算
+          const zoomDelta = -e.deltaY * ZOOM_SPEED;
+          const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.scale + zoomDelta));
+
+          // ズーム後もマウス位置のワールド座標が同じになるように調整
+          camera.scale = newScale;
+          camera.x = mouseX - worldX * newScale;
+          camera.y = mouseY - worldY * newScale;
+
+          applyCamera();
+        };
+
+        // マウスドラッグでパン
+        const handleMouseDown = (e: MouseEvent) => {
+          camera.isDragging = true;
+          camera.lastX = e.clientX;
+          camera.lastY = e.clientY;
+          canvas.style.cursor = 'grabbing';
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+          if (!camera.isDragging) return;
+          const dx = e.clientX - camera.lastX;
+          const dy = e.clientY - camera.lastY;
+          camera.x += dx;
+          camera.y += dy;
+          camera.lastX = e.clientX;
+          camera.lastY = e.clientY;
+          applyCamera();
+        };
+
+        const handleMouseUp = () => {
+          camera.isDragging = false;
+          canvas.style.cursor = 'grab';
+        };
+
+        // タッチイベント（ピンチズーム・ドラッグ）
+        const getTouchDistance = (touches: TouchList) => {
+          if (touches.length < 2) return 0;
+          const dx = touches[0].clientX - touches[1].clientX;
+          const dy = touches[0].clientY - touches[1].clientY;
+          return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        const getTouchCenter = (touches: TouchList, rect: DOMRect) => {
+          if (touches.length < 2) {
+            return { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+          }
+          return {
+            x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left,
+            y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top,
+          };
+        };
+
+        const handleTouchStart = (e: TouchEvent) => {
+          if (e.touches.length === 1) {
+            camera.isDragging = true;
+            camera.lastX = e.touches[0].clientX;
+            camera.lastY = e.touches[0].clientY;
+          } else if (e.touches.length === 2) {
+            camera.lastPinchDistance = getTouchDistance(e.touches);
+          }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+          e.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+
+          if (e.touches.length === 1 && camera.isDragging) {
+            // シングルタッチでパン
+            const dx = e.touches[0].clientX - camera.lastX;
+            const dy = e.touches[0].clientY - camera.lastY;
+            camera.x += dx;
+            camera.y += dy;
+            camera.lastX = e.touches[0].clientX;
+            camera.lastY = e.touches[0].clientY;
+            applyCamera();
+          } else if (e.touches.length === 2) {
+            // ピンチズーム
+            const newDistance = getTouchDistance(e.touches);
+            if (camera.lastPinchDistance > 0) {
+              const center = getTouchCenter(e.touches, rect);
+              const worldX = (center.x - camera.x) / camera.scale;
+              const worldY = (center.y - camera.y) / camera.scale;
+
+              const zoomFactor = newDistance / camera.lastPinchDistance;
+              const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.scale * zoomFactor));
+
+              camera.scale = newScale;
+              camera.x = center.x - worldX * newScale;
+              camera.y = center.y - worldY * newScale;
+
+              applyCamera();
+            }
+            camera.lastPinchDistance = newDistance;
+          }
+        };
+
+        const handleTouchEnd = (e: TouchEvent) => {
+          if (e.touches.length === 0) {
+            camera.isDragging = false;
+            camera.lastPinchDistance = 0;
+          } else if (e.touches.length === 1) {
+            camera.lastX = e.touches[0].clientX;
+            camera.lastY = e.touches[0].clientY;
+            camera.lastPinchDistance = 0;
+          }
+        };
+
+        // イベントリスナー登録
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
+
+        canvas.style.cursor = 'grab';
+        canvas.style.touchAction = 'none';
 
         // ゲームエンジン開始
         const engine = new GameEngine(app);
@@ -239,6 +408,17 @@ export function RestaurantMap() {
       cookSpritesRef.current.clear();
       dynamicContainerRef.current = null;
       kitchenSpriteRef.current = null;
+      worldContainerRef.current = null;
+      // カメラ状態をリセット
+      cameraStateRef.current = {
+        scale: 1,
+        x: 0,
+        y: 0,
+        isDragging: false,
+        lastX: 0,
+        lastY: 0,
+        lastPinchDistance: 0,
+      };
     };
   }, []);
 
@@ -249,8 +429,8 @@ export function RestaurantMap() {
         width: CANVAS_WIDTH,
         height: CANVAS_HEIGHT,
         border: '2px solid #333',
-        borderRadius: '8px',
         overflow: 'hidden',
+        flexShrink: 0,
       }}
     />
   );

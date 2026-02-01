@@ -57,6 +57,12 @@ export function WindowButton({
     };
   };
 
+  const height = {
+    small: '22px',
+    medium: '26px',
+    large: '30px',
+  }[size];
+
   return (
     <button
       onClick={onClick}
@@ -74,6 +80,12 @@ export function WindowButton({
         ...getBorderStyle(),
         outline: 'none',
         minWidth: size === 'large' ? '80px' : size === 'medium' ? '70px' : '60px',
+        height,
+        whiteSpace: 'nowrap',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxSizing: 'border-box',
       }}
     >
       {children}
