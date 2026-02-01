@@ -1,5 +1,7 @@
 disabled,id,name,status,unlockCost,slotCount,posCol,posRow,unlockCondition,unlockValue
 number,string,string,string,number,number,number,number,string,number
-0,shibuya,渋谷店,vacant,100,3,2,3,,0
-0,shinjuku,新宿店,vacant,200,3,5,2,,0
-0,ikebukuro,池袋店,locked,400,3,7,4,lit,10
+0,ekimae,サイゼリヤ 駅前店,vacant,100,3,2,3,,0
+0,mall,サイゼリヤ ショッピングモール店,vacant,200,3,5,2,,0
+0,roadside,サイゼリヤ ロードサイド店,locked,400,3,7,4,lit,10
+0,university,サイゼリヤ 大学前店,locked,600,3,3,6,money,500
+0,office,サイゼリヤ オフィス街店,locked,800,3,8,1,day,15
