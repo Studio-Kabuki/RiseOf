@@ -1,64 +1,117 @@
-import { useEffect, useState } from 'react';
-import { useGameStore } from './store';
-import { ResourceBar } from './components/ResourceBar';
-import { GameMap } from './components/GameMap';
-import { ShopCard } from './components/ShopCard';
-import { ActionPanel } from './components/ActionPanel';
-import { GachaModal } from './components/GachaModal';
-import { StaffGachaModal } from './components/StaffGachaModal';
-import { StaffPlacementModal } from './components/StaffPlacementModal';
-import { GameOverModal } from './components/GameOverModal';
-import { loadGameData, setGameData } from './utils/dataLoader';
+import { RestaurantMap } from './components/RestaurantMap';
+import { useRestaurantStore, useEntityStore } from './store';
 import './App.css';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const { shops, selectedShopId, initializeFromCSV } = useGameStore();
-  const selectedShop = shops.find(s => s.id === selectedShopId && s.status === 'owned');
+  const { money, isPaused, togglePause, reset: resetRestaurant } = useRestaurantStore();
+  const { reset: resetEntities, addCustomer } = useEntityStore();
+  const { assignSeat, getAvailableSeats } = useRestaurantStore();
 
-  // CSVデータをロード
-  useEffect(() => {
-    loadGameData()
-      .then(data => {
-        setGameData(data);
-        initializeFromCSV();
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to load game data:', err);
-        setIsLoading(false);
-      });
-  }, [initializeFromCSV]);
+  const handleReset = () => {
+    resetRestaurant();
+    resetEntities();
+    // リセット後に再度お客さんを追加（RestaurantMapの初期化に任せる）
+    window.location.reload();
+  };
 
-  if (isLoading) {
-    return (
-      <div className="app loading">
-        <div className="loading-spinner">Loading...</div>
-      </div>
-    );
-  }
+  const handleAddCustomer = () => {
+    const availableSeats = getAvailableSeats();
+    if (availableSeats.length > 0) {
+      const customerId = addCustomer(availableSeats[0].id);
+      assignSeat(availableSeats[0].id, customerId);
+    }
+  };
 
   return (
     <div className="app">
-      <ResourceBar />
-
-      <div className="game-area">
-        <GameMap />
-
-        {selectedShop && (
-          <div className="shop-overlay">
-            <ShopCard shop={selectedShop} />
-          </div>
-        )}
+      {/* ヘッダー */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 20px',
+          backgroundColor: '#333',
+          color: 'white',
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>
+          サイゼリヤ シミュレーター
+        </h1>
+        <div style={{ fontSize: '1.2rem' }}>
+          💰 {money} 円
+        </div>
       </div>
 
-      <ActionPanel />
+      {/* ゲームエリア */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px',
+          backgroundColor: '#e0e0e0',
+          minHeight: 'calc(100vh - 120px)',
+        }}
+      >
+        <RestaurantMap />
+      </div>
 
-      {/* モーダル */}
-      <GachaModal />
-      <StaffGachaModal />
-      <StaffPlacementModal />
-      <GameOverModal />
+      {/* コントロールパネル */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          padding: '10px 20px',
+          backgroundColor: '#333',
+        }}
+      >
+        <button
+          onClick={togglePause}
+          style={{
+            padding: '10px 20px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            backgroundColor: isPaused ? '#4caf50' : '#ff9800',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+          }}
+        >
+          {isPaused ? '▶ 再開' : '⏸ 一時停止'}
+        </button>
+
+        <button
+          onClick={handleAddCustomer}
+          style={{
+            padding: '10px 20px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            backgroundColor: '#2196f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+          }}
+        >
+          + お客さん追加
+        </button>
+
+        <button
+          onClick={handleReset}
+          style={{
+            padding: '10px 20px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            backgroundColor: '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+          }}
+        >
+          リセット
+        </button>
+      </div>
     </div>
   );
 }
