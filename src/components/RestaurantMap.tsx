@@ -145,7 +145,7 @@ export function RestaurantMap() {
           return;
         }
 
-        // CSVからメニューを読み込み
+        // CSVからメニューを読み込み（TitleScreenで既にロード済みだがキャッシュから取得）
         await loadMenusFromCSV();
         const menuPool = getMenuPool();
 

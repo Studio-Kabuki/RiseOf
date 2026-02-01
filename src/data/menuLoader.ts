@@ -33,7 +33,7 @@ export async function loadMenusFromCSV(): Promise<MenuItem[]> {
   if (cachedMenus) return cachedMenus;
 
   try {
-    const response = await fetch('/data/menus.csv');
+    const response = await fetch(`${import.meta.env.BASE_URL}data/menus.csv`);
     if (!response.ok) {
       throw new Error(`Failed to load menus.csv: ${response.status}`);
     }

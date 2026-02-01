@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { RestaurantMap } from './components/RestaurantMap';
+import { TitleScreen } from './components/TitleScreen';
 import { MenuSelectionWindow } from './components/MenuSelectionWindow';
 import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
@@ -6,15 +8,22 @@ import { useRestaurantStore, useEntityStore, useMenuStore } from './store';
 import './App.css';
 
 function App() {
+  const [showGame, setShowGame] = useState(false);
   const { money, isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant } = useRestaurantStore();
   const { reset: resetEntities, addCustomer } = useEntityStore();
   const { assignSeat, getAvailableSeats } = useRestaurantStore();
-  const { registeredMenus, gameStarted, reset: resetMenu } = useMenuStore();
+  const { registeredMenus, gameStarted, reset: resetMenu, openSelection } = useMenuStore();
+
+  const handleGameStart = () => {
+    setShowGame(true);
+    openSelection();
+  };
 
   const handleReset = () => {
     resetRestaurant();
     resetEntities();
     resetMenu();
+    setShowGame(false);
   };
 
   const handleAddCustomer = () => {
@@ -62,43 +71,49 @@ function App() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '20px',
+          padding: showGame ? '20px' : '0',
           backgroundColor: '#e0e0e0',
           minHeight: 'calc(100vh - 220px)',
           position: 'relative',
         }}
       >
-        <RestaurantMap />
-        {/* 閉店オーバーレイ（ゲーム開始前） */}
-        {!gameStarted && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                color: '#ff6b6b',
-                padding: '20px 40px',
-                borderRadius: '8px',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                border: '3px solid #ff6b6b',
-              }}
-            >
-              CLOSED
-            </div>
-          </div>
+        {showGame ? (
+          <>
+            <RestaurantMap />
+            {/* 閉店オーバーレイ（ゲーム開始前） */}
+            {!gameStarted && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: '#ff6b6b',
+                    padding: '20px 40px',
+                    borderRadius: '8px',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    border: '3px solid #ff6b6b',
+                  }}
+                >
+                  CLOSED
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <TitleScreen onStart={handleGameStart} />
         )}
       </div>
 

@@ -33,7 +33,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   registeredMenus: [],
   maxMenuSlots: INITIAL_MENU_SLOTS,
   currentOptions: [],
-  isSelectionOpen: true, // 初期状態でオープン
+  isSelectionOpen: false, // タイトル画面からゲームスタート時に開く
   gameStarted: false,
 
   openSelection: () => {
@@ -77,7 +77,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       registeredMenus: [],
       maxMenuSlots: INITIAL_MENU_SLOTS,
       currentOptions: options,
-      isSelectionOpen: true,
+      isSelectionOpen: false,
       gameStarted: false,
     });
   },
