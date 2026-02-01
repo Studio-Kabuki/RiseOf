@@ -5,12 +5,14 @@ import { useEntityStore, useRestaurantStore } from '../store';
 import {
   CustomerSprite,
   StaffSprite,
+  CookSprite,
   TableSprite,
   KitchenSprite,
   EntranceSprite,
   RegisterSprite,
 } from './sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, CUSTOMER_SPAWN_DELAY, ICONS } from '../constants/game';
+import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
 
 export function RestaurantMap() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,11 +23,12 @@ export function RestaurantMap() {
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
   const staffSpritesRef = useRef<Map<string, StaffSprite>>(new Map());
+  const cookSpritesRef = useRef<Map<string, CookSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
   // Store
-  const { addCustomer, addStaff } = useEntityStore();
+  const { addCustomer, addStaff, addCook } = useEntityStore();
   const { restaurant, assignSeat, getAvailableSeats } = useRestaurantStore();
 
   // スプライト更新
@@ -35,10 +38,12 @@ export function RestaurantMap() {
 
     const customerSprites = customerSpritesRef.current;
     const staffSprites = staffSpritesRef.current;
+    const cookSprites = cookSpritesRef.current;
 
     // 現在のエンティティ状態を取得
     const currentCustomers = useEntityStore.getState().customers;
     const currentStaff = useEntityStore.getState().staff;
+    const currentCooks = useEntityStore.getState().cooks;
     const currentRestaurant = useRestaurantStore.getState().restaurant;
 
     // Customerスプライト更新
@@ -85,6 +90,27 @@ export function RestaurantMap() {
       sprite.update(s);
     }
 
+    // Cookスプライト更新
+    const cookIds = new Set(currentCooks.map((c) => c.id));
+
+    for (const [id, sprite] of cookSprites) {
+      if (!cookIds.has(id)) {
+        dynamicContainer.removeChild(sprite);
+        sprite.destroy();
+        cookSprites.delete(id);
+      }
+    }
+
+    for (const cook of currentCooks) {
+      let sprite = cookSprites.get(cook.id);
+      if (!sprite) {
+        sprite = new CookSprite();
+        dynamicContainer.addChild(sprite);
+        cookSprites.set(cook.id, sprite);
+      }
+      sprite.update(cook);
+    }
+
     // キッチン更新
     if (kitchenSpriteRef.current) {
       kitchenSpriteRef.current.update(currentRestaurant.kitchen);
@@ -119,14 +145,20 @@ export function RestaurantMap() {
           return;
         }
 
+        // CSVからメニューを読み込み
+        await loadMenusFromCSV();
+        const menuPool = getMenuPool();
+
         // アイコン画像をプリロード
-        await Assets.load([
-          ICONS.doria,
+        // メニュープールの全アイコンと店員アイコンをプリロード
+        const menuIconUrls = menuPool.map((menu) => menu.iconUrl);
+        const staffIconUrls = [
           ICONS.staff.movingToKitchen,
           ICONS.staff.pickingFood,
           ICONS.staff.delivering,
           ICONS.staff.serving,
-        ]);
+        ];
+        await Assets.load([...menuIconUrls, ...staffIconUrls]);
 
         if (!containerRef.current) return;
 
@@ -168,6 +200,11 @@ export function RestaurantMap() {
         // 初期スタッフを追加（まだいない場合のみ）
         if (useEntityStore.getState().staff.length === 0) {
           addStaff();
+        }
+
+        // 初期コック（キッチンスタッフ）を追加（まだいない場合のみ）
+        if (useEntityStore.getState().cooks.length === 0) {
+          addCook();
         }
 
         // 初期お客さんを追加（2人、間隔を開けて）- まだいない場合のみ
@@ -219,6 +256,7 @@ export function RestaurantMap() {
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();
+      cookSpritesRef.current.clear();
       dynamicContainerRef.current = null;
       kitchenSpriteRef.current = null;
     };

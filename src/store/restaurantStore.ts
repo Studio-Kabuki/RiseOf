@@ -7,6 +7,8 @@ import {
   KITCHEN_POSITION,
   SEAT_OFFSETS,
   DAY_DURATION,
+  BASE_RENT,
+  RENT_EXPONENT,
 } from '../constants/game';
 
 // 初期レストラン設定
@@ -44,8 +46,17 @@ interface RestaurantState {
   isPaused: boolean;
   gameSpeed: number; // ゲーム速度倍率
 
+  // 家賃（ノルマ）システム
+  currentRent: number; // 現在の日の家賃
+  isGameOver: boolean; // ゲームオーバー状態
+  rentPaid: boolean; // 今日の家賃を支払ったか
+
   // Day getters
   getDayProgress: () => number; // 0-1で1日の進捗
+
+  // 家賃（ノルマ）アクション
+  calculateRent: (day: number) => number; // 指定した日の家賃を計算
+  payRent: () => boolean; // 家賃を支払う（成功でtrue、失敗でfalse）
 
   // Seat actions
   assignSeat: (seatId: string, customerId: string) => void;
@@ -78,6 +89,18 @@ interface RestaurantState {
 
 let orderIdCounter = 0;
 
+// 指定した日の家賃を計算する関数
+// Day1: BASE_RENT, Day2: BASE_RENT^1.5, Day3: (BASE_RENT^1.5)^1.5 ...
+const calculateRentForDay = (day: number): number => {
+  if (day <= 1) return BASE_RENT;
+  // 前日の家賃を1.5乗する
+  let rent = BASE_RENT;
+  for (let i = 1; i < day; i++) {
+    rent = Math.pow(rent, RENT_EXPONENT);
+  }
+  return Math.floor(rent);
+};
+
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   restaurant: createInitialRestaurant(),
   money: 0,
@@ -88,9 +111,34 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   isPaused: true, // ゲーム開始前は一時停止
   gameSpeed: 1,
 
+  // 家賃（ノルマ）システム
+  currentRent: BASE_RENT, // 初日の家賃
+  isGameOver: false,
+  rentPaid: false,
+
   getDayProgress: () => {
     const { dayTimeElapsed } = get();
     return Math.min(dayTimeElapsed / DAY_DURATION, 1);
+  },
+
+  // 指定した日の家賃を計算
+  calculateRent: (day: number) => calculateRentForDay(day),
+
+  // 家賃を支払う
+  payRent: () => {
+    const { money, currentRent } = get();
+    if (money >= currentRent) {
+      // 支払い成功
+      set((state) => ({
+        money: state.money - state.currentRent,
+        rentPaid: true,
+      }));
+      return true;
+    } else {
+      // 支払い失敗 → ゲームオーバー
+      set({ isGameOver: true });
+      return false;
+    }
   },
 
   assignSeat: (seatId, customerId) =>
@@ -233,12 +281,18 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     })),
 
   startNextDay: () =>
-    set((state) => ({
-      currentDay: state.currentDay + 1,
-      dayTimeElapsed: 0,
-      isDayEnded: false,
-      isPaused: false,
-    })),
+    set((state) => {
+      const nextDay = state.currentDay + 1;
+      return {
+        currentDay: nextDay,
+        dayTimeElapsed: 0,
+        isDayEnded: false,
+        isPaused: false,
+        // 次の日の家賃を設定
+        currentRent: calculateRentForDay(nextDay),
+        rentPaid: false,
+      };
+    }),
 
   cycleSpeed: () =>
     set((state) => {
@@ -259,6 +313,10 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       isDayEnded: false,
       isPaused: true, // リセット後は一時停止状態
       gameSpeed: 1,
+      // 家賃システムのリセット
+      currentRent: BASE_RENT,
+      isGameOver: false,
+      rentPaid: false,
     });
   },
 }));

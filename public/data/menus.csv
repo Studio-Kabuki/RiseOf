@@ -1,0 +1,6 @@
+id,name,price,cookingTime,iconUrl
+string,string,number,number,string
+doria,ミラノ風ドリア,300,3,https://img.icons8.com/fluency/48/rice-bowl.png
+spaghetti,ミートソース,400,4,https://img.icons8.com/fluency/48/spaghetti.png
+pizza,マルゲリータ,400,4,https://img.icons8.com/fluency/48/pizza.png
+salad,グリーンサラダ,200,1,https://img.icons8.com/fluency/48/salad.png
