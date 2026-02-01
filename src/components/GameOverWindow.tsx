@@ -50,9 +50,11 @@ export const GameOverWindow = ({ onRestart }: GameOverWindowProps) => {
       {/* 結果表示 */}
       <div
         style={{
-          backgroundColor: 'white',
-          border: '1px solid #7F9DB9',
-          borderRadius: '4px',
+          backgroundColor: '#FFFFFF',
+          borderTop: '1px solid #808080',
+          borderLeft: '1px solid #808080',
+          borderBottom: '1px solid #FFFFFF',
+          borderRight: '1px solid #FFFFFF',
           padding: '12px',
           marginBottom: '16px',
         }}

@@ -158,8 +158,10 @@ export const DayEndWindow = () => {
       <div
         style={{
           backgroundColor: '#FFF0F0',
-          border: '1px solid #CC0000',
-          borderRadius: '4px',
+          borderTop: '1px solid #808080',
+          borderLeft: '1px solid #808080',
+          borderBottom: '1px solid #FFFFFF',
+          borderRight: '1px solid #FFFFFF',
           padding: '12px',
           marginBottom: '16px',
           textAlign: 'center',
@@ -193,8 +195,10 @@ export const DayEndWindow = () => {
       <div
         style={{
           backgroundColor: '#FFF8E1',
-          border: '1px solid #FF9800',
-          borderRadius: '4px',
+          borderTop: '1px solid #808080',
+          borderLeft: '1px solid #808080',
+          borderBottom: '1px solid #FFFFFF',
+          borderRight: '1px solid #FFFFFF',
           padding: '12px',
           marginBottom: '16px',
           textAlign: 'center',
@@ -229,7 +233,6 @@ export const DayEndWindow = () => {
           onClick={handleNextDay}
           disabled={isAnimating}
           size="large"
-          variant="primary"
         >
           {isAnimating ? '支払い中...' : '次の日へ'}
         </WindowButton>

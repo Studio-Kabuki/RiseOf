@@ -108,8 +108,8 @@ export const DayClock = () => {
               alignItems: 'center',
             }}
           >
-            <span style={{ fontSize: '7px', color: '#FFFFFF', textShadow: '0 0 2px #000' }}>DAY</span>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#FFFFFF', textShadow: '0 0 2px #000' }}>
+            <span style={{ fontSize: '7px', color: '#000000' }}>DAY</span>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#000080' }}>
               {currentDay}
             </span>
           </div>
@@ -125,7 +125,7 @@ export const DayClock = () => {
         }}
       >
         {/* ラベル */}
-        <div style={{ fontSize: '10px', color: '#FFFFFF', fontWeight: 'bold' }}>
+        <div style={{ fontSize: '10px', color: '#000000', fontWeight: 'bold' }}>
           売上目標
         </div>
         {/* ノルマ進捗バー */}
