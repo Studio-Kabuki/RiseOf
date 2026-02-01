@@ -100,15 +100,15 @@ export function WindowDialog({
                 onClick={handleCloseClick}
                 disabled={closeDisabled}
                 style={{
-                  width: '16px',
-                  height: '14px',
+                  width: '24px',
+                  height: '21px',
                   backgroundColor: '#C0C0C0',
-                  borderTop: closeDisabled ? '1px solid #808080' : '1px solid #FFFFFF',
-                  borderLeft: closeDisabled ? '1px solid #808080' : '1px solid #FFFFFF',
-                  borderBottom: closeDisabled ? '1px solid #FFFFFF' : '1px solid #404040',
-                  borderRight: closeDisabled ? '1px solid #FFFFFF' : '1px solid #404040',
+                  borderTop: closeDisabled ? '2px solid #808080' : '2px solid #FFFFFF',
+                  borderLeft: closeDisabled ? '2px solid #808080' : '2px solid #FFFFFF',
+                  borderBottom: closeDisabled ? '2px solid #FFFFFF' : '2px solid #404040',
+                  borderRight: closeDisabled ? '2px solid #FFFFFF' : '2px solid #404040',
                   color: closeDisabled ? '#808080' : '#000000',
-                  fontSize: '10px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   cursor: closeDisabled ? 'not-allowed' : 'pointer',
                   display: 'flex',
