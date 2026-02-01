@@ -3,25 +3,65 @@ import type { Customer, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore, createOrder, createFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
-import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION } from '../../constants/game';
+import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
 
 export class CustomerSystem implements GameSystem {
   private orderingTimers: Map<string, number> = new Map();
+  private spawnTimer: number = 0;
 
   update(deltaTime: number): void {
-    const { customers, updateCustomer, removeCustomer } =
+    const { customers, updateCustomer, removeCustomer, waitingQueue, promoteWaitingCustomer, addWaitingCustomer, addCustomer } =
       useEntityStore.getState();
-    const { getSeatPosition, addOrder, freeSeat, addMoney } =
+    const { getSeatPosition, addOrder, freeSeat, addMoney, getAvailableSeats, assignSeat, isClosing, isOpen } =
       useRestaurantStore.getState();
+    const { gameStarted } = useMenuStore.getState();
+
+    // ゲームが開始されていない場合は処理しない
+    if (!gameStarted) return;
+
+    // 開店中かつ閉店処理中でなければスポーンと入店処理
+    if (isOpen && !isClosing) {
+      // お客さんの自動スポーン処理
+      this.handleSpawn(deltaTime, getAvailableSeats, addCustomer, addWaitingCustomer, assignSeat);
+
+      // 待機列から入店処理（空席があれば）
+      this.handleWaitingQueuePromotion(waitingQueue, getAvailableSeats, promoteWaitingCustomer, assignSeat);
+    }
 
     for (const customer of customers) {
+      // 閉店処理中：全員即座に帰宅させる
+      if (isClosing && customer.state !== 'leaving') {
+        // 食事中・支払い中の場合はお金を払う
+        if (customer.state === 'eating' || customer.state === 'paying') {
+          const price = customer.orderedFood?.price || 0;
+          addMoney(price);
+        }
+        // 座席を解放
+        if (customer.assignedSeatId) {
+          freeSeat(customer.assignedSeatId);
+        }
+        updateCustomer(customer.id, {
+          state: 'leaving',
+          orderedFood: null, // 吹き出しを消す
+        });
+        continue;
+      }
+
       switch (customer.state) {
+        case 'waiting_outside':
+          // 待機列にいる - 位置はentityStoreで管理
+          break;
+
         case 'entering':
           this.handleEntering(customer, deltaTime, getSeatPosition, updateCustomer);
           break;
 
         case 'seated':
           this.handleSeated(customer, deltaTime, updateCustomer);
+          break;
+
+        case 'waiting_for_menu':
+          this.handleWaitingForMenu(customer, deltaTime, updateCustomer);
           break;
 
         case 'ordering':
@@ -45,6 +85,62 @@ export class CustomerSystem implements GameSystem {
           break;
       }
     }
+  }
+
+  /**
+   * お客さんの自動スポーン処理
+   */
+  private handleSpawn(
+    deltaTime: number,
+    getAvailableSeats: () => { id: string }[],
+    addCustomer: (seatId: string) => string,
+    addWaitingCustomer: () => string,
+    assignSeat: (seatId: string, customerId: string) => void
+  ): void {
+    this.spawnTimer += deltaTime;
+
+    if (this.spawnTimer >= CUSTOMER_SPAWN_DELAY) {
+      this.spawnTimer = 0;
+
+      const availableSeats = getAvailableSeats();
+      if (availableSeats.length > 0) {
+        // 空席があれば直接入店
+        const seatId = availableSeats[0].id;
+        const customerId = addCustomer(seatId);
+        assignSeat(seatId, customerId);
+      } else {
+        // 満席の場合は待機列に追加
+        addWaitingCustomer();
+      }
+    }
+  }
+
+  /**
+   * 待機列から入店処理
+   */
+  private handleWaitingQueuePromotion(
+    waitingQueue: string[],
+    getAvailableSeats: () => { id: string }[],
+    promoteWaitingCustomer: (seatId: string) => string | null,
+    assignSeat: (seatId: string, customerId: string) => void
+  ): void {
+    if (waitingQueue.length === 0) return;
+
+    const availableSeats = getAvailableSeats();
+    if (availableSeats.length > 0) {
+      const seatId = availableSeats[0].id;
+      const customerId = promoteWaitingCustomer(seatId);
+      if (customerId) {
+        assignSeat(seatId, customerId);
+      }
+    }
+  }
+
+  /**
+   * スポーンタイマーをリセット（日終了時に呼び出す）
+   */
+  resetSpawnTimer(): void {
+    this.spawnTimer = 0;
   }
 
   private handleEntering(
@@ -82,7 +178,12 @@ export class CustomerSystem implements GameSystem {
     if (timer >= ORDERING_DELAY) {
       // 登録メニューからランダム選択
       const { registeredMenus } = useMenuStore.getState();
-      if (registeredMenus.length === 0) return; // メニューがない場合は待機
+      if (registeredMenus.length === 0) {
+        // メニューがない場合は待機状態へ（?吹き出し表示）
+        updateCustomer(customer.id, { state: 'waiting_for_menu' });
+        this.orderingTimers.delete(customer.id);
+        return;
+      }
 
       const randomMenu = registeredMenus[Math.floor(Math.random() * registeredMenus.length)];
       const food = createFood(randomMenu);
@@ -93,6 +194,30 @@ export class CustomerSystem implements GameSystem {
       });
       this.orderingTimers.delete(customer.id);
     }
+  }
+
+  /**
+   * メニュー待機中の処理
+   * メニューが登録されたら注文に進む
+   */
+  private handleWaitingForMenu(
+    customer: Customer,
+    _deltaTime: number,
+    updateCustomer: (id: string, updates: Partial<Customer>) => void
+  ): void {
+    const { registeredMenus } = useMenuStore.getState();
+
+    if (registeredMenus.length > 0) {
+      // メニューが登録された！ランダム選択して注文へ
+      const randomMenu = registeredMenus[Math.floor(Math.random() * registeredMenus.length)];
+      const food = createFood(randomMenu);
+
+      updateCustomer(customer.id, {
+        state: 'ordering',
+        orderedFood: food,
+      });
+    }
+    // メニューがなければそのまま待機を続ける
   }
 
   private handleOrdering(

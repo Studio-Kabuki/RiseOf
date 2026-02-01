@@ -11,7 +11,7 @@ import {
   EntranceSprite,
   RegisterSprite,
 } from './sprites';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, CUSTOMER_SPAWN_DELAY, ICONS } from '../constants/game';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
 
 export function RestaurantMap() {
@@ -28,8 +28,8 @@ export function RestaurantMap() {
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
   // Store
-  const { addCustomer, addStaff, addCook } = useEntityStore();
-  const { restaurant, assignSeat, getAvailableSeats } = useRestaurantStore();
+  const { addStaff, addCook } = useEntityStore();
+  const { restaurant } = useRestaurantStore();
 
   // スプライト更新
   const updateSprites = () => {
@@ -207,27 +207,7 @@ export function RestaurantMap() {
           addCook();
         }
 
-        // 初期お客さんを追加（2人、間隔を開けて）- まだいない場合のみ
-        if (useEntityStore.getState().customers.length === 0) {
-          const availableSeats = getAvailableSeats();
-          if (availableSeats.length >= 1) {
-            // 1人目：即座に
-            const customerId1 = addCustomer(availableSeats[0].id);
-            assignSeat(availableSeats[0].id, customerId1);
-
-            // 2人目：少し遅れて
-            if (availableSeats.length >= 2) {
-              setTimeout(() => {
-                if (destroyed) return;
-                const seats = useRestaurantStore.getState().getAvailableSeats();
-                if (seats.length > 0) {
-                  const customerId2 = useEntityStore.getState().addCustomer(seats[0].id);
-                  useRestaurantStore.getState().assignSeat(seats[0].id, customerId2);
-                }
-              }, CUSTOMER_SPAWN_DELAY * 1000);
-            }
-          }
-        }
+        // お客さんは CustomerSystem が isOpen 時に自動スポーンする
 
         // スプライト更新ループ
         app.ticker.add(updateSprites);

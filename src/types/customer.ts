@@ -2,8 +2,10 @@ import type { Entity } from './entity';
 import type { Food } from './food';
 
 export type CustomerState =
+  | 'waiting_outside' // 店外で待機中（満席時）
   | 'entering' // 入店中（入口から席へ移動）
   | 'seated' // 着席済み
+  | 'waiting_for_menu' // メニューがない時の待機（?吹き出し表示）
   | 'ordering' // 注文中（吹き出し表示）
   | 'waiting' // 料理待ち
   | 'eating' // 食事中（10秒）

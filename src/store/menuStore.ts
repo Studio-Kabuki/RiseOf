@@ -1,87 +1,46 @@
 import { create } from 'zustand';
 import type { MenuItem } from '../types';
-import { getRandomMenuOptions } from '../data/menuPool';
 import { useRestaurantStore } from './restaurantStore';
-
-// 初期メニュースロット数
-const INITIAL_MENU_SLOTS = 4;
-// 選択肢の数
-const SELECTION_OPTIONS_COUNT = 3;
+import { MAX_MENU_SLOTS } from '../constants/game';
 
 interface MenuState {
   // 現在登録されているメニュー
   registeredMenus: MenuItem[];
   // 最大登録数
   maxMenuSlots: number;
-  // 現在の選択肢（3つ）
-  currentOptions: MenuItem[];
-  // メニュー選択ウィンドウを表示中か
-  isSelectionOpen: boolean;
-  // ゲームが開始されたか
+  // ゲームが開始されたか（タイトル画面から遷移したか）
   gameStarted: boolean;
 
   // Actions
-  openSelection: () => void;
-  closeSelection: () => void;
-  selectMenu: (menuId: string) => void;
-  refreshOptions: () => void;
+  addMenu: (menu: MenuItem) => void;
   startGame: () => void;
   reset: () => void;
 }
 
 export const useMenuStore = create<MenuState>((set, get) => ({
   registeredMenus: [],
-  maxMenuSlots: INITIAL_MENU_SLOTS,
-  currentOptions: [],
-  isSelectionOpen: false, // タイトル画面からゲームスタート時に開く
+  maxMenuSlots: MAX_MENU_SLOTS,
   gameStarted: false,
 
-  openSelection: () => {
-    const { registeredMenus } = get();
-    const excludeIds = registeredMenus.map((m) => m.id);
-    const options = getRandomMenuOptions(SELECTION_OPTIONS_COUNT, excludeIds);
-    set({ currentOptions: options, isSelectionOpen: true });
-  },
-
-  closeSelection: () => set({ isSelectionOpen: false }),
-
-  selectMenu: (menuId: string) => {
-    const { currentOptions, registeredMenus, maxMenuSlots } = get();
-    const selectedMenu = currentOptions.find((m) => m.id === menuId);
-
-    if (!selectedMenu) return;
+  addMenu: (menu: MenuItem) => {
+    const { registeredMenus, maxMenuSlots } = get();
     if (registeredMenus.length >= maxMenuSlots) return;
-
-    set({
-      registeredMenus: [...registeredMenus, selectedMenu],
-      isSelectionOpen: false,
-    });
-  },
-
-  refreshOptions: () => {
-    const { registeredMenus } = get();
-    const excludeIds = registeredMenus.map((m) => m.id);
-    const options = getRandomMenuOptions(SELECTION_OPTIONS_COUNT, excludeIds);
-    set({ currentOptions: options });
+    // 既に登録済みのメニューは追加しない
+    if (registeredMenus.some((m) => m.id === menu.id)) return;
+    set({ registeredMenus: [...registeredMenus, menu] });
   },
 
   startGame: () => {
-    set({ gameStarted: true, isSelectionOpen: false });
+    set({ gameStarted: true });
     // ゲーム開始時に一時停止を解除
     useRestaurantStore.setState({ isPaused: false });
   },
 
   reset: () => {
-    const options = getRandomMenuOptions(SELECTION_OPTIONS_COUNT, []);
     set({
       registeredMenus: [],
-      maxMenuSlots: INITIAL_MENU_SLOTS,
-      currentOptions: options,
-      isSelectionOpen: false,
+      maxMenuSlots: MAX_MENU_SLOTS,
       gameStarted: false,
     });
   },
 }));
-
-// 初期化時に選択肢を生成
-useMenuStore.getState().refreshOptions();

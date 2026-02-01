@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useRestaurantStore, useMenuStore } from '../store';
+import { useState, useEffect, useRef } from 'react';
+import { useRestaurantStore, useShopStore } from '../store';
 import { useEntityStore } from '../store/entityStore';
+import { LIT_PER_DAY } from '../constants/game';
+import { WindowDialog, WindowButton } from './ui';
 
 export const DayEndWindow = () => {
   const {
     isDayEnded,
+    showDayEnd,
     currentDay,
     money,
     currentRent,
@@ -12,339 +15,225 @@ export const DayEndWindow = () => {
     rentPaid,
     payRent,
     startNextDay,
-    reset: resetRestaurant,
+    clearAllSeats,
+    clearAllOrders,
+    addMoney,
+    addLit,
+    lit,
   } = useRestaurantStore();
-  const {
-    openSelection,
-    closeSelection,
-    registeredMenus,
-    maxMenuSlots,
-    isSelectionOpen,
-    reset: resetMenu,
-  } = useMenuStore();
-  const { reset: resetEntities } = useEntityStore();
+  const { customers, clearAllCustomers, resetAllStaff, resetAllCooks } = useEntityStore();
+  const { refreshLineup, openShop } = useShopStore();
 
   // 家賃支払い状態の管理
   const [hasAttemptedPayment, setHasAttemptedPayment] = useState(false);
+  // 清算処理が完了したか
+  const hasSettledRef = useRef(false);
+  // 所持金減少アニメーション用
+  const [displayMoney, setDisplayMoney] = useState(money);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // 日終了時に自動で家賃支払いを試みる
+  // 日終了時（showDayEnd=true時）に自動で清算処理を行う
   useEffect(() => {
-    if (isDayEnded && !rentPaid && !hasAttemptedPayment && !isGameOver) {
+    if (showDayEnd && !hasSettledRef.current) {
+      hasSettledRef.current = true;
+
+      // 食事中のお客さんから即座にお金を回収
+      let totalEarnings = 0;
+      for (const customer of customers) {
+        // 店内にいるお客さん（entering, seated, ordering, waiting, eating）から支払いを受ける
+        if (customer.state !== 'leaving' && customer.state !== 'waiting_outside' && customer.state !== 'paying') {
+          if (customer.orderedFood) {
+            totalEarnings += customer.orderedFood.price;
+          }
+        }
+      }
+
+      // 稼いだお金を追加
+      if (totalEarnings > 0) {
+        addMoney(totalEarnings);
+      }
+
+      // 1日終了ボーナス：LITを獲得
+      addLit(LIT_PER_DAY);
+
+      // 全お客さんをクリア
+      clearAllCustomers();
+      // 全座席を解放
+      clearAllSeats();
+      // 全注文をクリア
+      clearAllOrders();
+      // スタッフを定位置に戻す
+      resetAllStaff();
+      // コックを定位置に戻す
+      resetAllCooks();
+    }
+  }, [showDayEnd, customers, addMoney, addLit, clearAllCustomers, clearAllSeats, clearAllOrders, resetAllStaff, resetAllCooks]);
+
+  // showDayEnd時に自動で家賃支払いを試みる
+  useEffect(() => {
+    if (showDayEnd && !rentPaid && !hasAttemptedPayment && !isGameOver) {
       setHasAttemptedPayment(true);
       payRent();
     }
-  }, [isDayEnded, rentPaid, hasAttemptedPayment, isGameOver, payRent]);
+  }, [showDayEnd, rentPaid, hasAttemptedPayment, isGameOver, payRent]);
 
   // 新しい日が始まったらリセット
   useEffect(() => {
-    if (!isDayEnded) {
+    if (!isDayEnded && !showDayEnd) {
       setHasAttemptedPayment(false);
+      hasSettledRef.current = false;
     }
-  }, [isDayEnded]);
+  }, [isDayEnded, showDayEnd]);
 
-  // メニュー選択ウィンドウが開いている場合は非表示
-  if (!isDayEnded || isSelectionOpen) return null;
+  // showDayEndが表示された時にdisplayMoneyを初期化
+  useEffect(() => {
+    if (showDayEnd) {
+      setDisplayMoney(money + currentRent); // 家賃支払い前の金額
+      setIsAnimating(false);
+    }
+  }, [showDayEnd, money, currentRent]);
 
-  const canAddMenu = registeredMenus.length < maxMenuSlots;
+  // showDayEndがtrueの時だけ表示（ゲームオーバー時は別ウィンドウで処理）
+  if (!showDayEnd || isGameOver) return null;
+
   // 家賃支払い後の残高
   const remainingMoney = rentPaid ? money : money - currentRent;
 
-  const handleAddMenu = () => {
-    openSelection();
-  };
-
   const handleNextDay = () => {
-    closeSelection(); // メニューダイアログを閉じる
-    startNextDay();
+    if (isAnimating) return;
+
+    setIsAnimating(true);
+    const startMoney = money + currentRent;
+    const endMoney = money;
+    const duration = 1000; // 1秒
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // イージング
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(startMoney - (startMoney - endMoney) * eased);
+      setDisplayMoney(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // アニメーション完了後、次の日へ
+        setTimeout(() => {
+          refreshLineup();
+          startNextDay();
+          openShop(); // ショップウィンドウを自動で開く
+        }, 300);
+      }
+    };
+
+    requestAnimationFrame(animate);
   };
-
-  // ゲームオーバー時のリスタート処理
-  const handleRestart = () => {
-    // 全てのストアをリセット
-    resetRestaurant();
-    resetMenu();
-    resetEntities();
-    setHasAttemptedPayment(false);
-  };
-
-  // ゲームオーバー画面
-  if (isGameOver) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}
-      >
-        {/* ゲームオーバーウィンドウ */}
-        <div
-          style={{
-            width: '400px',
-            backgroundColor: '#ECE9D8',
-            border: '2px solid #8B0000',
-            borderRadius: '8px 8px 0 0',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-            fontFamily: 'Tahoma, "MS UI Gothic", sans-serif',
-          }}
-        >
-          {/* タイトルバー（赤色） */}
-          <div
-            style={{
-              background: 'linear-gradient(180deg, #4A0000 0%, #8B0000 10%, #8B0000 90%, #4A0000 100%)',
-              padding: '6px 10px',
-              borderRadius: '6px 6px 0 0',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ fontSize: '13px', color: 'white', fontWeight: 'bold' }}>
-              Day {currentDay} - ゲームオーバー
-            </span>
-          </div>
-
-          {/* コンテンツ */}
-          <div style={{ padding: '20px' }}>
-            {/* ゲームオーバーメッセージ */}
-            <div
-              style={{
-                textAlign: 'center',
-                marginBottom: '20px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '28px',
-                  fontWeight: 'bold',
-                  color: '#8B0000',
-                  marginBottom: '16px',
-                }}
-              >
-                GAME OVER
-              </div>
-              <div style={{ fontSize: '14px', color: '#333', marginBottom: '8px' }}>
-                家賃を支払えませんでした
-              </div>
-              <div style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>
-                所持金: {money} 円 / 家賃: {currentRent} 円
-              </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                不足額: {currentRent - money} 円
-              </div>
-            </div>
-
-            {/* リスタートボタン */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <button
-                onClick={handleRestart}
-                style={{
-                  padding: '12px 32px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  backgroundColor: '#8B0000',
-                  color: 'white',
-                  border: '1px solid #4A0000',
-                  borderRadius: '4px',
-                  fontWeight: 'bold',
-                }}
-              >
-                最初からやり直す
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-      }}
+    <WindowDialog
+      title={`Day ${currentDay} - 営業終了`}
+      width="400px"
+      zIndex={1000}
     >
-      {/* Windows XP風ウィンドウ */}
-      <div
-        style={{
-          width: '400px',
-          backgroundColor: '#ECE9D8',
-          border: '2px solid #0054E3',
-          borderRadius: '8px 8px 0 0',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-          fontFamily: 'Tahoma, "MS UI Gothic", sans-serif',
-        }}
-      >
-        {/* タイトルバー */}
+      {/* 売上・所持金表示 */}
+      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <div style={{ fontSize: '14px', color: '#333', marginBottom: '8px' }}>
+          {isAnimating ? '所持金' : '本日の売上'}
+        </div>
         <div
           style={{
-            background: 'linear-gradient(180deg, #0A246A 0%, #0054E3 10%, #0054E3 90%, #0A246A 100%)',
-            padding: '6px 10px',
-            borderRadius: '6px 6px 0 0',
-            display: 'flex',
-            alignItems: 'center',
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: isAnimating ? (displayMoney < money + currentRent ? '#CC0000' : '#006400') : '#006400',
+            transition: 'color 0.3s',
           }}
         >
-          <span style={{ fontSize: '13px', color: 'white', fontWeight: 'bold' }}>
-            Day {currentDay} - 営業終了
-          </span>
-        </div>
-
-        {/* コンテンツ */}
-        <div style={{ padding: '20px' }}>
-          {/* 売上表示 */}
-          <div
-            style={{
-              textAlign: 'center',
-              marginBottom: '16px',
-            }}
-          >
-            <div style={{ fontSize: '14px', color: '#333', marginBottom: '8px' }}>
-              本日の売上
-            </div>
-            <div
-              style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#006400',
-              }}
-            >
-              {money + currentRent} 円
-            </div>
-          </div>
-
-          {/* 家賃表示 */}
-          <div
-            style={{
-              backgroundColor: '#FFF0F0',
-              border: '1px solid #CC0000',
-              borderRadius: '4px',
-              padding: '12px',
-              marginBottom: '16px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: '12px', color: '#333', marginBottom: '4px' }}>
-              本日の家賃（ノルマ）
-            </div>
-            <div
-              style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#CC0000',
-                marginBottom: '8px',
-              }}
-            >
-              -{currentRent} 円
-            </div>
-            <div
-              style={{
-                fontSize: '14px',
-                color: rentPaid ? '#006400' : '#CC0000',
-                fontWeight: 'bold',
-              }}
-            >
-              残高: {remainingMoney} 円
-            </div>
-          </div>
-
-          {/* メニュー追加オプション */}
-          {canAddMenu ? (
-            <div
-              style={{
-                backgroundColor: '#FFFFD0',
-                border: '1px solid #DAA520',
-                borderRadius: '4px',
-                padding: '12px',
-                marginBottom: '16px',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: '12px', color: '#333', marginBottom: '4px' }}>
-                新しいメニューを追加できます！
-              </div>
-              <div style={{ fontSize: '11px', color: '#666' }}>
-                現在: {registeredMenus.length} / {maxMenuSlots} 枠
-              </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                backgroundColor: '#F0F0F0',
-                border: '1px solid #999',
-                borderRadius: '4px',
-                padding: '12px',
-                marginBottom: '16px',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                メニュー枠がいっぱいです
-              </div>
-            </div>
-          )}
-
-          {/* ボタン */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '12px',
-            }}
-          >
-            {canAddMenu && (
-              <button
-                onClick={handleAddMenu}
-                style={{
-                  padding: '8px 20px',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: '1px solid #2E7D32',
-                  borderRadius: '4px',
-                }}
-              >
-                + メニュー追加
-              </button>
-            )}
-            <button
-              onClick={handleNextDay}
-              style={{
-                padding: '8px 20px',
-                fontSize: '13px',
-                cursor: 'pointer',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                border: '1px solid #1565C0',
-                borderRadius: '4px',
-              }}
-            >
-              次の日へ
-            </button>
-          </div>
+          {isAnimating ? displayMoney : money + currentRent} 円
         </div>
       </div>
-    </div>
+
+      {/* 家賃表示 */}
+      <div
+        style={{
+          backgroundColor: '#FFF0F0',
+          border: '1px solid #CC0000',
+          borderRadius: '4px',
+          padding: '12px',
+          marginBottom: '16px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: '12px', color: '#333', marginBottom: '4px' }}>
+          本日の家賃（ノルマ）
+        </div>
+        <div
+          style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#CC0000',
+            marginBottom: '8px',
+          }}
+        >
+          -{currentRent} 円
+        </div>
+        <div
+          style={{
+            fontSize: '14px',
+            color: rentPaid ? '#006400' : '#CC0000',
+            fontWeight: 'bold',
+          }}
+        >
+          残高: {isAnimating ? displayMoney : remainingMoney} 円
+        </div>
+      </div>
+
+      {/* LIT獲得表示 */}
+      <div
+        style={{
+          backgroundColor: '#FFF8E1',
+          border: '1px solid #FF9800',
+          borderRadius: '4px',
+          padding: '12px',
+          marginBottom: '16px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: '12px', color: '#333', marginBottom: '4px' }}>
+          1日終了ボーナス
+        </div>
+        <div
+          style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#ff6600',
+          }}
+        >
+          🔥 +{LIT_PER_DAY} LIT
+        </div>
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '4px',
+          }}
+        >
+          所持: {lit} LIT
+        </div>
+      </div>
+
+      {/* ボタン */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <WindowButton
+          onClick={handleNextDay}
+          disabled={isAnimating}
+          size="large"
+          variant="primary"
+        >
+          {isAnimating ? '支払い中...' : '次の日へ'}
+        </WindowButton>
+      </div>
+    </WindowDialog>
   );
 };

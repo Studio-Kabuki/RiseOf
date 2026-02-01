@@ -8,12 +8,23 @@ export class StaffSystem implements GameSystem {
   update(deltaTime: number): void {
     const { staff, updateStaff, customers, updateCustomer } =
       useEntityStore.getState();
-    const { restaurant, removeReadyFood, removeOrder } =
+    const { restaurant, removeReadyFood, removeOrder, isClosing } =
       useRestaurantStore.getState();
 
     for (let i = 0; i < staff.length; i++) {
       const s = staff[i];
       const idlePosition = getStaffIdlePosition(i);
+
+      // 閉店処理中：全員即座にidleにして定位置に戻す
+      if (isClosing && s.state !== 'idle') {
+        updateStaff(s.id, {
+          state: 'idle',
+          carryingFood: null,
+          targetCustomerId: null,
+          targetOrderId: null,
+        });
+        continue;
+      }
 
       switch (s.state) {
         case 'idle':
@@ -64,6 +75,8 @@ export class StaffSystem implements GameSystem {
     deltaTime: number,
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
+    const { isClosing } = useRestaurantStore.getState();
+
     // まず定位置に戻る
     const dx = idlePosition.x - staff.position.x;
     const dy = idlePosition.y - staff.position.y;
@@ -74,6 +87,9 @@ export class StaffSystem implements GameSystem {
       this.moveTowards(staff, idlePosition, deltaTime, updateStaff);
       return;
     }
+
+    // 閉店処理中は新しい仕事を始めない
+    if (isClosing) return;
 
     // 定位置にいる場合、完成した料理があればキッチンへ
     if (readyFoods.length > 0) {
@@ -174,6 +190,8 @@ export class StaffSystem implements GameSystem {
     removeOrder: (orderId: string) => void,
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
+    const { isClosing } = useRestaurantStore.getState();
+
     // お客さんに料理を渡す
     const targetCustomer = customers.find(
       (c) => c.id === staff.targetCustomerId
@@ -186,6 +204,17 @@ export class StaffSystem implements GameSystem {
     // 注文を削除
     if (staff.targetOrderId) {
       removeOrder(staff.targetOrderId);
+    }
+
+    // 閉店処理中は定位置に戻る
+    if (isClosing) {
+      updateStaff(staff.id, {
+        state: 'idle',
+        carryingFood: null,
+        targetCustomerId: null,
+        targetOrderId: null,
+      });
+      return;
     }
 
     // 完成した料理があればそのままキッチンへ

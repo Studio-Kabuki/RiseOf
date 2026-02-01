@@ -39,8 +39,16 @@ export class CustomerSprite extends Container {
   }
 
   private updateBubble(customer: Customer): void {
-    const shouldShowBubble = customer.state === 'ordering' || customer.state === 'waiting';
-    const menuIconUrl = customer.orderedFood?.iconUrl || ICONS.doria;
+    const shouldShowBubble =
+      customer.state === 'ordering' ||
+      customer.state === 'waiting' ||
+      customer.state === 'waiting_for_menu';
+
+    // メニュー待機中は?アイコン、それ以外は注文した料理のアイコン
+    const menuIconUrl =
+      customer.state === 'waiting_for_menu'
+        ? ICONS.question
+        : customer.orderedFood?.iconUrl || ICONS.doria;
 
     // デバッグ: 一度だけログ出力
     if (shouldShowBubble && customer.orderedFood && !this.bubble) {

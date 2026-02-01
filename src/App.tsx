@@ -1,68 +1,58 @@
 import { useState } from 'react';
 import { RestaurantMap } from './components/RestaurantMap';
 import { TitleScreen } from './components/TitleScreen';
-import { MenuSelectionWindow } from './components/MenuSelectionWindow';
 import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
-import { useRestaurantStore, useEntityStore, useMenuStore } from './store';
+import { GameOverWindow } from './components/GameOverWindow';
+import { ShopWindow } from './components/ShopWindow';
+import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore } from './store';
 import './App.css';
 
 function App() {
   const [showGame, setShowGame] = useState(false);
-  const { money, isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant } = useRestaurantStore();
-  const { reset: resetEntities, addCustomer } = useEntityStore();
-  const { assignSeat, getAvailableSeats } = useRestaurantStore();
-  const { registeredMenus, gameStarted, reset: resetMenu, openSelection } = useMenuStore();
+  const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen } = useRestaurantStore();
+  const { reset: resetEntities } = useEntityStore();
+  const { registeredMenus, gameStarted, reset: resetMenu, startGame } = useMenuStore();
+  const { openShop, reset: resetShop } = useShopStore();
 
   const handleGameStart = () => {
     setShowGame(true);
-    openSelection();
+    startGame(); // ゲーム開始
+    openShop(); // ショップを開く
   };
 
   const handleReset = () => {
     resetRestaurant();
     resetEntities();
     resetMenu();
+    resetShop();
     setShowGame(false);
-  };
-
-  const handleAddCustomer = () => {
-    const availableSeats = getAvailableSeats();
-    if (availableSeats.length > 0) {
-      const customerId = addCustomer(availableSeats[0].id);
-      assignSeat(availableSeats[0].id, customerId);
-    }
   };
 
   return (
     <div className="app">
-      {/* メニュー選択ウィンドウ */}
-      <MenuSelectionWindow />
+      {/* ショップウィンドウ */}
+      <ShopWindow />
 
       {/* 1日終了ウィンドウ */}
       <DayEndWindow />
+
+      {/* ゲームオーバーウィンドウ */}
+      <GameOverWindow onRestart={handleReset} />
 
       {/* ヘッダー */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
-          padding: '10px 20px',
+          padding: '6px 20px',
           backgroundColor: '#333',
           color: 'white',
         }}
       >
-        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>
-          サイゼリヤ シミュレーター
-        </h1>
-
-        {/* 時計ゲージ（中央） */}
+        {/* 時間ゲージ + ノルマゲージ（中央配置） */}
         <DayClock />
-
-        <div style={{ fontSize: '1.2rem' }}>
-          {money} 円
-        </div>
       </div>
 
       {/* ゲームエリア */}
@@ -80,8 +70,8 @@ function App() {
         {showGame ? (
           <>
             <RestaurantMap />
-            {/* 閉店オーバーレイ（ゲーム開始前） */}
-            {!gameStarted && (
+            {/* 閉店オーバーレイ（開店前） */}
+            {(!gameStarted || !isOpen) && (
               <div
                 style={{
                   position: 'absolute',
@@ -89,7 +79,7 @@ function App() {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -208,20 +198,20 @@ function App() {
         </button>
 
         <button
-          onClick={handleAddCustomer}
+          onClick={openShop}
           disabled={!gameStarted}
           style={{
             padding: '10px 20px',
             fontSize: '1rem',
             cursor: gameStarted ? 'pointer' : 'not-allowed',
-            backgroundColor: gameStarted ? '#2196f3' : '#666',
+            backgroundColor: gameStarted ? '#FF9800' : '#666',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
             opacity: gameStarted ? 1 : 0.5,
           }}
         >
-          + お客さん追加
+          ショップ
         </button>
 
         <button

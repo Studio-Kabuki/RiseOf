@@ -35,7 +35,10 @@ export class KitchenSystem implements GameSystem {
     cook: Cook,
     updateCook: (id: string, updates: Partial<Cook>) => void
   ): void {
-    const { restaurant, updateOrder } = useRestaurantStore.getState();
+    const { restaurant, updateOrder, isClosing } = useRestaurantStore.getState();
+
+    // 閉店処理中は新しい注文を取らない
+    if (isClosing) return;
 
     // pending状態の注文を探す
     const pendingOrder = restaurant.kitchen.orders.find(
@@ -67,6 +70,19 @@ export class KitchenSystem implements GameSystem {
     updateOrder: (id: string, updates: Partial<import('../../types').Order>) => void,
     addReadyFood: (orderId: string) => void
   ): void {
+    const { isClosing } = useRestaurantStore.getState();
+
+    // 閉店処理中は調理を止める
+    if (isClosing) {
+      updateCook(cook.id, {
+        state: 'idle',
+        currentOrderId: null,
+        currentFood: null,
+        cookingProgress: 0,
+      });
+      return;
+    }
+
     if (!cook.currentOrderId || !cook.currentFood) {
       // 調理中だが注文がない場合はidleに戻す
       updateCook(cook.id, {
