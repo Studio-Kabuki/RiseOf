@@ -1,0 +1,58 @@
+.resource-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2d1b0e 0%, #4a2c17 100%);
+  border-bottom: 3px solid #8b4513;
+  color: #f5deb3;
+}
+
+.day-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.norma-info {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.norma-timer {
+  color: #ff9800;
+}
+
+.norma-amount {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.resources {
+  display: flex;
+  gap: 20px;
+}
+
+.resource {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid #8b4513;
+}
+
+.resource-icon {
+  width: 28px;
+  height: 28px;
+}

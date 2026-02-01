@@ -1,0 +1,30 @@
+.action-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-top: 3px solid #4a69bd;
+}
+
+.panel-info {
+  color: #aaa;
+  font-size: 1rem;
+}
+
+.end-turn-button {
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #6c3483 0%, #8e44ad 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.end-turn-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(142, 68, 173, 0.5);
+}

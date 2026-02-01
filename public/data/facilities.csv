@@ -1,0 +1,10 @@
+disabled,id,name,icon,incomeMoney,incomeLit,rarity,attribute
+number,string,string,string,number,number,string,string
+0,pasta,パスタ,https://img.icons8.com/color/96/spaghetti.png,20,0,common,pasta
+0,carbonara,カルボナーラ,https://img.icons8.com/color/96/spaghetti.png,35,0,rare,pasta
+0,cake,ケーキ,https://img.icons8.com/color/96/cake.png,15,1,common,sweets
+0,parfait,パフェ,https://img.icons8.com/color/96/ice-cream-sundae.png,25,1,rare,sweets
+0,steak,ステーキ,https://img.icons8.com/color/96/steak.png,40,0,rare,meat
+0,hamburg,ハンバーグ,https://img.icons8.com/color/96/hamburger.png,30,0,common,meat
+0,wine,ワイン,https://img.icons8.com/color/96/wine-bottle.png,10,2,epic,drink
+0,coffee,コーヒー,https://img.icons8.com/color/96/coffee-to-go.png,10,1,common,drink

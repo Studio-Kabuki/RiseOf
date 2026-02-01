@@ -1,0 +1,13 @@
+.game-map-viewport {
+  flex: 1;
+  width: 100%;
+  min-height: 400px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.game-map-viewport canvas {
+  display: block;
+}
