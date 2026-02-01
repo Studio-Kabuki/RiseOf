@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Win98IconButton } from './Win98IconButton';
 
 export interface WindowDialogProps {
   title: string;
@@ -96,30 +97,13 @@ export function WindowDialog({
 
             {/* 閉じるボタン */}
             {onClose && (
-              <button
+              <Win98IconButton
                 onClick={handleCloseClick}
                 disabled={closeDisabled}
-                style={{
-                  width: '24px',
-                  height: '21px',
-                  backgroundColor: '#C0C0C0',
-                  borderTop: closeDisabled ? '2px solid #808080' : '2px solid #FFFFFF',
-                  borderLeft: closeDisabled ? '2px solid #808080' : '2px solid #FFFFFF',
-                  borderBottom: closeDisabled ? '2px solid #FFFFFF' : '2px solid #404040',
-                  borderRight: closeDisabled ? '2px solid #FFFFFF' : '2px solid #404040',
-                  color: closeDisabled ? '#808080' : '#000000',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: closeDisabled ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  lineHeight: 1,
-                }}
+                size={24}
               >
                 ✕
-              </button>
+              </Win98IconButton>
             )}
           </div>
 

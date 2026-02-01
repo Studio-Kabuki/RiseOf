@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { useButtonPress, getWin98BorderStyle, buttonBaseStyle } from '../../hooks';
 
 export interface WindowButtonProps {
   children: ReactNode;
@@ -14,7 +14,7 @@ export function WindowButton({
   disabled = false,
   size = 'medium',
 }: WindowButtonProps) {
-  const [isPressed, setIsPressed] = useState(false);
+  const { isPressed, pressHandlers } = useButtonPress(disabled);
 
   // サイズに応じたパディング
   const padding = {
@@ -29,68 +29,35 @@ export function WindowButton({
     large: '13px',
   }[size];
 
-  // Windows 98 スタイルの3Dボーダー
-  const getBorderStyle = () => {
-    if (disabled) {
-      return {
-        borderTop: '2px solid #DFDFDF',
-        borderLeft: '2px solid #DFDFDF',
-        borderBottom: '2px solid #808080',
-        borderRight: '2px solid #808080',
-      };
-    }
-    if (isPressed) {
-      // 押された時は凹んだ見た目
-      return {
-        borderTop: '2px solid #808080',
-        borderLeft: '2px solid #808080',
-        borderBottom: '2px solid #FFFFFF',
-        borderRight: '2px solid #FFFFFF',
-      };
-    }
-    // 通常は浮き出た見た目
-    return {
-      borderTop: '2px solid #FFFFFF',
-      borderLeft: '2px solid #FFFFFF',
-      borderBottom: '2px solid #808080',
-      borderRight: '2px solid #808080',
-    };
-  };
-
   const height = {
     small: '22px',
     medium: '26px',
     large: '30px',
   }[size];
 
-  const handlePressStart = () => {
-    if (!disabled) setIsPressed(true);
-  };
-
-  const handlePressEnd = () => {
-    setIsPressed(false);
-  };
+  const borderStyle = disabled
+    ? {
+        borderTop: '2px solid #DFDFDF',
+        borderLeft: '2px solid #DFDFDF',
+        borderBottom: '2px solid #808080',
+        borderRight: '2px solid #808080',
+      }
+    : getWin98BorderStyle(isPressed);
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      // マウスイベント
-      onMouseDown={handlePressStart}
-      onMouseUp={handlePressEnd}
-      onMouseLeave={handlePressEnd}
-      // タッチイベント（スマホ対応）
-      onTouchStart={handlePressStart}
-      onTouchEnd={handlePressEnd}
-      onTouchCancel={handlePressEnd}
+      {...pressHandlers}
       style={{
+        ...buttonBaseStyle,
         padding,
         fontSize,
         fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
         cursor: disabled ? 'not-allowed' : 'pointer',
         backgroundColor: '#C0C0C0',
         color: disabled ? '#808080' : '#000000',
-        ...getBorderStyle(),
+        ...borderStyle,
         outline: 'none',
         minWidth: size === 'large' ? '80px' : size === 'medium' ? '70px' : '60px',
         height,
@@ -99,8 +66,6 @@ export function WindowButton({
         alignItems: 'center',
         justifyContent: 'center',
         boxSizing: 'border-box',
-        // タッチデバイスでのハイライト無効化
-        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {children}

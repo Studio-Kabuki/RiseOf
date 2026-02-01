@@ -5,7 +5,7 @@ import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
 import { GameOverWindow } from './components/GameOverWindow';
 import { ShopWindow } from './components/ShopWindow';
-import { WindowButton } from './components/ui';
+import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore } from './store';
 import './App.css';
 
@@ -111,53 +111,13 @@ function App() {
             </span>
             <div style={{ display: 'flex', gap: '2px' }}>
               {/* ヘルプボタン */}
-              <button
-                style={{
-                  width: '24px',
-                  height: '21px',
-                  backgroundColor: '#C0C0C0',
-                  borderTop: '2px solid #FFFFFF',
-                  borderLeft: '2px solid #FFFFFF',
-                  borderBottom: '2px solid #404040',
-                  borderRight: '2px solid #404040',
-                  color: '#000000',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  lineHeight: 1,
-                }}
-                onClick={() => {}}
-              >
+              <Win98IconButton onClick={() => {}} size={24}>
                 ?
-              </button>
+              </Win98IconButton>
               {/* 閉じるボタン（無効） */}
-              <button
-                disabled
-                style={{
-                  width: '24px',
-                  height: '21px',
-                  backgroundColor: '#C0C0C0',
-                  borderTop: '2px solid #808080',
-                  borderLeft: '2px solid #808080',
-                  borderBottom: '2px solid #FFFFFF',
-                  borderRight: '2px solid #FFFFFF',
-                  color: '#808080',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  lineHeight: 1,
-                }}
-              >
+              <Win98IconButton disabled size={24}>
                 ✕
-              </button>
+              </Win98IconButton>
             </div>
           </div>
 
@@ -206,27 +166,15 @@ function App() {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  cursor: 'pointer',
                 }}
-                onClick={() => useRestaurantStore.getState().openStore()}
               >
-                <button
-                  style={{
-                    backgroundColor: '#C0C0C0',
-                    border: 'none',
-                    borderTop: '3px solid #FFFFFF',
-                    borderLeft: '3px solid #FFFFFF',
-                    borderBottom: '3px solid #808080',
-                    borderRight: '3px solid #808080',
-                    padding: '16px 48px',
-                    cursor: 'pointer',
-                    fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
-                  }}
+                <Win98LargeButton
+                  onClick={() => useRestaurantStore.getState().openStore()}
+                  color="#008542"
+                  variant="raised"
                 >
-                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#008542' }}>
-                    開店する
-                  </span>
-                </button>
+                  開店する
+                </Win98LargeButton>
               </div>
             )}
             {/* 次の日へオーバーレイ */}
@@ -242,27 +190,15 @@ function App() {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  cursor: 'pointer',
                 }}
-                onClick={triggerClose}
               >
-                <button
-                  style={{
-                    backgroundColor: '#C0C0C0',
-                    border: 'none',
-                    borderTop: '3px solid #808080',
-                    borderLeft: '3px solid #808080',
-                    borderBottom: '3px solid #FFFFFF',
-                    borderRight: '3px solid #FFFFFF',
-                    padding: '16px 48px',
-                    cursor: 'pointer',
-                    fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
-                  }}
+                <Win98LargeButton
+                  onClick={triggerClose}
+                  color="#008000"
+                  variant="inset"
                 >
-                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#008000' }}>
-                    次の日へ
-                  </span>
-                </button>
+                  次の日へ
+                </Win98LargeButton>
               </div>
             )}
           </>
