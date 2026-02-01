@@ -94,38 +94,38 @@ interface ShopItemProps {
 function ShopItem({ menu, canBuy, isSoldOut, onPurchase }: ShopItemProps) {
   const isClickable = canBuy && !isSoldOut;
 
+  const applyPressedStyle = (el: HTMLElement) => {
+    el.style.borderTop = '2px solid #808080';
+    el.style.borderLeft = '2px solid #808080';
+    el.style.borderBottom = '2px solid #DFDFDF';
+    el.style.borderRight = '2px solid #DFDFDF';
+    el.style.boxShadow = 'none';
+  };
+
+  const applyNormalStyle = (el: HTMLElement) => {
+    el.style.borderTop = '2px solid #DFDFDF';
+    el.style.borderLeft = '2px solid #DFDFDF';
+    el.style.borderBottom = '2px solid #808080';
+    el.style.borderRight = '2px solid #808080';
+    el.style.boxShadow = '1px 1px 0 #404040';
+  };
+
   return (
     <div
       style={{
         ...styles.menuCard,
         ...(isSoldOut ? styles.menuCardSoldOut : !canBuy ? styles.menuCardDisabled : {}),
+        WebkitTapHighlightColor: 'transparent',
       }}
       onClick={() => isClickable && onPurchase()}
-      onMouseDown={(e) => {
-        if (isClickable) {
-          e.currentTarget.style.borderTop = '2px solid #808080';
-          e.currentTarget.style.borderLeft = '2px solid #808080';
-          e.currentTarget.style.borderBottom = '2px solid #DFDFDF';
-          e.currentTarget.style.borderRight = '2px solid #DFDFDF';
-          e.currentTarget.style.boxShadow = 'none';
-        }
-      }}
-      onMouseUp={(e) => {
-        if (isClickable) {
-          e.currentTarget.style.borderTop = '2px solid #DFDFDF';
-          e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
-          e.currentTarget.style.borderBottom = '2px solid #808080';
-          e.currentTarget.style.borderRight = '2px solid #808080';
-          e.currentTarget.style.boxShadow = '1px 1px 0 #404040';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderTop = '2px solid #DFDFDF';
-        e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
-        e.currentTarget.style.borderBottom = '2px solid #808080';
-        e.currentTarget.style.borderRight = '2px solid #808080';
-        e.currentTarget.style.boxShadow = '1px 1px 0 #404040';
-      }}
+      // マウスイベント
+      onMouseDown={(e) => isClickable && applyPressedStyle(e.currentTarget)}
+      onMouseUp={(e) => isClickable && applyNormalStyle(e.currentTarget)}
+      onMouseLeave={(e) => applyNormalStyle(e.currentTarget)}
+      // タッチイベント（スマホ対応）
+      onTouchStart={(e) => isClickable && applyPressedStyle(e.currentTarget)}
+      onTouchEnd={(e) => isClickable && applyNormalStyle(e.currentTarget)}
+      onTouchCancel={(e) => applyNormalStyle(e.currentTarget)}
     >
       {/* SOLD OUT バッジ */}
       {isSoldOut && (

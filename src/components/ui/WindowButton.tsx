@@ -63,13 +63,26 @@ export function WindowButton({
     large: '30px',
   }[size];
 
+  const handlePressStart = () => {
+    if (!disabled) setIsPressed(true);
+  };
+
+  const handlePressEnd = () => {
+    setIsPressed(false);
+  };
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      onMouseDown={() => !disabled && setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
-      onMouseLeave={() => setIsPressed(false)}
+      // マウスイベント
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      // タッチイベント（スマホ対応）
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+      onTouchCancel={handlePressEnd}
       style={{
         padding,
         fontSize,
@@ -86,6 +99,8 @@ export function WindowButton({
         alignItems: 'center',
         justifyContent: 'center',
         boxSizing: 'border-box',
+        // タッチデバイスでのハイライト無効化
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {children}
