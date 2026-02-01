@@ -4,7 +4,6 @@ import {
   CUSTOMER_SPEED,
   STAFF_SPEED,
   ENTRANCE_POSITION,
-  DORIA_PRICE,
   getStaffIdlePosition,
 } from '../constants/game';
 
@@ -42,9 +41,8 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       speed: CUSTOMER_SPEED,
       state: 'entering',
       assignedSeatId: seatId,
-      orderedMenuId: null,
+      orderedFood: null,
       eatingProgress: 0,
-      payment: DORIA_PRICE,
     };
     set((state) => ({
       customers: [...state.customers, customer],
@@ -75,8 +73,9 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       position: { ...idlePosition },
       speed: STAFF_SPEED,
       state: 'idle',
-      carryingFoodId: null,
+      carryingFood: null,
       targetCustomerId: null,
+      targetOrderId: null,
     };
     set((state) => ({
       staff: [...state.staff, staff],

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Application, Container } from 'pixi.js';
+import { Application, Assets, Container } from 'pixi.js';
 import { GameEngine } from '../game';
 import { useEntityStore, useRestaurantStore } from '../store';
 import {
@@ -8,8 +8,9 @@ import {
   TableSprite,
   KitchenSprite,
   EntranceSprite,
+  RegisterSprite,
 } from './sprites';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/game';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, CUSTOMER_SPAWN_DELAY, ICONS } from '../constants/game';
 
 export function RestaurantMap() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,6 +119,15 @@ export function RestaurantMap() {
           return;
         }
 
+        // アイコン画像をプリロード
+        await Assets.load([
+          ICONS.doria,
+          ICONS.staff.movingToKitchen,
+          ICONS.staff.pickingFood,
+          ICONS.staff.delivering,
+          ICONS.staff.serving,
+        ]);
+
         if (!containerRef.current) return;
 
         containerRef.current.appendChild(app.canvas);
@@ -141,6 +151,10 @@ export function RestaurantMap() {
         staticContainer.addChild(kitchenSprite);
         kitchenSpriteRef.current = kitchenSprite;
 
+        // レジエリア
+        const registerSprite = new RegisterSprite(4);
+        staticContainer.addChild(registerSprite);
+
         // 動的オブジェクト用コンテナ
         const dynamicContainer = new Container();
         app.stage.addChild(dynamicContainer);
@@ -151,17 +165,31 @@ export function RestaurantMap() {
         engine.start();
         engineRef.current = engine;
 
-        // 初期スタッフを追加
-        addStaff();
+        // 初期スタッフを追加（まだいない場合のみ）
+        if (useEntityStore.getState().staff.length === 0) {
+          addStaff();
+        }
 
-        // 初期お客さんを追加（2人）
-        const availableSeats = getAvailableSeats();
-        if (availableSeats.length >= 2) {
-          const customerId1 = addCustomer(availableSeats[0].id);
-          assignSeat(availableSeats[0].id, customerId1);
+        // 初期お客さんを追加（2人、間隔を開けて）- まだいない場合のみ
+        if (useEntityStore.getState().customers.length === 0) {
+          const availableSeats = getAvailableSeats();
+          if (availableSeats.length >= 1) {
+            // 1人目：即座に
+            const customerId1 = addCustomer(availableSeats[0].id);
+            assignSeat(availableSeats[0].id, customerId1);
 
-          const customerId2 = addCustomer(availableSeats[1].id);
-          assignSeat(availableSeats[1].id, customerId2);
+            // 2人目：少し遅れて
+            if (availableSeats.length >= 2) {
+              setTimeout(() => {
+                if (destroyed) return;
+                const seats = useRestaurantStore.getState().getAvailableSeats();
+                if (seats.length > 0) {
+                  const customerId2 = useEntityStore.getState().addCustomer(seats[0].id);
+                  useRestaurantStore.getState().assignSeat(seats[0].id, customerId2);
+                }
+              }, CUSTOMER_SPAWN_DELAY * 1000);
+            }
+          }
         }
 
         // スプライト更新ループ

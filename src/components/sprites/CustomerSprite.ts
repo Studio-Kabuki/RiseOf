@@ -1,9 +1,12 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite } from 'pixi.js';
 import type { Customer } from '../../types';
+import { ICONS } from '../../constants/game';
 
 export class CustomerSprite extends Container {
   private body: Graphics;
   private bubble: Container | null = null;
+  private bubbleIcon: Sprite | null = null;
+  private currentMenuIconUrl: string | null = null;
   private progressBar: Graphics | null = null;
 
   constructor() {
@@ -36,41 +39,54 @@ export class CustomerSprite extends Container {
   }
 
   private updateBubble(customer: Customer): void {
-    // 注文中は吹き出し表示
-    if (customer.state === 'ordering' || customer.state === 'waiting') {
+    const shouldShowBubble = customer.state === 'ordering' || customer.state === 'waiting';
+    const menuIconUrl = customer.orderedFood?.iconUrl || ICONS.doria;
+
+    // デバッグ: 一度だけログ出力
+    if (shouldShowBubble && customer.orderedFood && !this.bubble) {
+      console.log('CustomerSprite: orderedFood', customer.orderedFood);
+      console.log('CustomerSprite: iconUrl', menuIconUrl);
+    }
+
+    if (shouldShowBubble) {
+      // 吹き出しがなければ作成
       if (!this.bubble) {
-        this.bubble = this.createBubble();
+        this.bubble = new Container();
+        this.bubble.y = -55;
+
+        // 吹き出し背景
+        const bg = new Graphics();
+        bg.roundRect(-18, -18, 36, 36, 8);
+        bg.fill(0xffffff);
+        bg.stroke({ width: 2, color: 0x333333 });
+        this.bubble.addChild(bg);
+
         this.addChild(this.bubble);
+      }
+
+      // アイコンを更新
+      if (this.currentMenuIconUrl !== menuIconUrl) {
+        if (this.bubbleIcon) {
+          this.bubble.removeChild(this.bubbleIcon);
+          this.bubbleIcon.destroy();
+        }
+
+        this.bubbleIcon = Sprite.from(menuIconUrl);
+        this.bubbleIcon.width = 24;
+        this.bubbleIcon.height = 24;
+        this.bubbleIcon.anchor.set(0.5);
+        this.bubble.addChild(this.bubbleIcon);
+        this.currentMenuIconUrl = menuIconUrl;
       }
     } else {
       if (this.bubble) {
         this.removeChild(this.bubble);
         this.bubble.destroy();
         this.bubble = null;
+        this.bubbleIcon = null;
+        this.currentMenuIconUrl = null;
       }
     }
-  }
-
-  private createBubble(): Container {
-    const bubble = new Container();
-    bubble.y = -50;
-
-    // 吹き出し背景
-    const bg = new Graphics();
-    bg.roundRect(-20, -15, 40, 30, 8);
-    bg.fill(0xffffff);
-    bg.stroke({ width: 2, color: 0x333333 });
-    bubble.addChild(bg);
-
-    // ドリアマーク（テキストで代用）
-    const text = new Text({
-      text: '🍚',
-      style: { fontSize: 18 },
-    });
-    text.anchor.set(0.5);
-    bubble.addChild(text);
-
-    return bubble;
   }
 
   private updateProgressBar(customer: Customer): void {

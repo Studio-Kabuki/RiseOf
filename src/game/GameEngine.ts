@@ -11,7 +11,6 @@ export interface GameSystem {
 export class GameEngine {
   private app: Application;
   private systems: GameSystem[] = [];
-  private gameSpeed: number = 1.0;
   private boundUpdate: (ticker: Ticker) => void;
 
   constructor(app: Application) {
@@ -33,11 +32,11 @@ export class GameEngine {
   }
 
   private update(ticker: Ticker): void {
-    const { isPaused, advanceTime } = useRestaurantStore.getState();
+    const { isPaused, advanceTime, gameSpeed } = useRestaurantStore.getState();
 
     if (isPaused) return;
 
-    const deltaTime = (ticker.deltaMS / 1000) * this.gameSpeed; // 秒単位
+    const deltaTime = (ticker.deltaMS / 1000) * gameSpeed; // 秒単位
 
     // ゲーム時間を進める
     advanceTime(deltaTime);
@@ -48,7 +47,4 @@ export class GameEngine {
     }
   }
 
-  setSpeed(speed: number): void {
-    this.gameSpeed = speed;
-  }
 }

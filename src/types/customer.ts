@@ -1,4 +1,5 @@
 import type { Entity } from './entity';
+import type { Food } from './food';
 
 export type CustomerState =
   | 'entering' // 入店中（入口から席へ移動）
@@ -12,7 +13,6 @@ export type CustomerState =
 export interface Customer extends Entity {
   state: CustomerState;
   assignedSeatId: string | null; // 割り当てられた座席ID
-  orderedMenuId: string | null; // 注文したメニューID
+  orderedFood: Food | null; // 注文した料理
   eatingProgress: number; // 0-1（食事進捗）
-  payment: number; // 支払う金額
 }

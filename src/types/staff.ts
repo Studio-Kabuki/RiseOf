@@ -1,4 +1,5 @@
 import type { Entity } from './entity';
+import type { Food } from './food';
 
 export type StaffState =
   | 'idle' // 待機中
@@ -9,6 +10,7 @@ export type StaffState =
 
 export interface Staff extends Entity {
   state: StaffState;
-  carryingFoodId: string | null; // 持っている料理（null=手ぶら）
+  carryingFood: Food | null; // 持っている料理（null=手ぶら）
   targetCustomerId: string | null; // 配達先のお客さんID
+  targetOrderId: string | null; // 対象の注文ID
 }

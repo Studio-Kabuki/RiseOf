@@ -1,7 +1,8 @@
 import type { GameSystem } from '../GameEngine';
-import type { Customer, Position } from '../../types';
+import type { Customer, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
-import { useRestaurantStore, createOrder } from '../../store/restaurantStore';
+import { useRestaurantStore, createOrder, createFood } from '../../store/restaurantStore';
+import { useMenuStore } from '../../store/menuStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION } from '../../constants/game';
 
 export class CustomerSystem implements GameSystem {
@@ -79,9 +80,16 @@ export class CustomerSystem implements GameSystem {
     this.orderingTimers.set(customer.id, timer);
 
     if (timer >= ORDERING_DELAY) {
+      // 登録メニューからランダム選択
+      const { registeredMenus } = useMenuStore.getState();
+      if (registeredMenus.length === 0) return; // メニューがない場合は待機
+
+      const randomMenu = registeredMenus[Math.floor(Math.random() * registeredMenus.length)];
+      const food = createFood(randomMenu);
+
       updateCustomer(customer.id, {
         state: 'ordering',
-        orderedMenuId: 'doria', // MVP: ドリア固定
+        orderedFood: food,
       });
       this.orderingTimers.delete(customer.id);
     }
@@ -89,11 +97,15 @@ export class CustomerSystem implements GameSystem {
 
   private handleOrdering(
     customer: Customer,
-    addOrder: (order: ReturnType<typeof createOrder>) => void,
+    addOrder: (order: Order) => void,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
+    if (!customer.orderedFood) {
+      return;
+    }
+
     // 注文を作成
-    const order = createOrder(customer.id, customer.orderedMenuId || 'doria');
+    const order = createOrder(customer.id, customer.orderedFood);
     addOrder(order);
 
     // 待機状態へ
@@ -123,8 +135,9 @@ export class CustomerSystem implements GameSystem {
     addMoney: (amount: number) => void,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
-    // お金を追加
-    addMoney(customer.payment);
+    // お金を追加（料理の価格）
+    const price = customer.orderedFood?.price || 0;
+    addMoney(price);
 
     // 座席を開放
     if (customer.assignedSeatId) {
@@ -134,7 +147,6 @@ export class CustomerSystem implements GameSystem {
     // 退店開始
     updateCustomer(customer.id, {
       state: 'leaving',
-      targetPosition: { ...EXIT_POSITION },
     });
   }
 

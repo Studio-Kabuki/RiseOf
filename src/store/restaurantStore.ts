@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { Restaurant, Order, Seat } from '../types';
+import type { Restaurant, Order, Seat, Food, MenuItem } from '../types';
 import {
   ENTRANCE_POSITION,
   EXIT_POSITION,
   TABLE_POSITION,
   KITCHEN_POSITION,
   SEAT_OFFSETS,
+  DAY_DURATION,
 } from '../constants/game';
 
 // 初期レストラン設定
@@ -30,11 +31,21 @@ const createInitialRestaurant = (): Restaurant => ({
   exitPosition: { ...EXIT_POSITION },
 });
 
+// ゲーム速度の選択肢
+const SPEED_OPTIONS = [1, 2, 5, 10];
+
 interface RestaurantState {
   restaurant: Restaurant;
   money: number;
   gameTime: number; // ゲーム内経過時間（秒）
+  currentDay: number; // 現在の日数（1から開始）
+  dayTimeElapsed: number; // 現在の日の経過時間（秒）
+  isDayEnded: boolean; // 1日が終了したか
   isPaused: boolean;
+  gameSpeed: number; // ゲーム速度倍率
+
+  // Day getters
+  getDayProgress: () => number; // 0-1で1日の進捗
 
   // Seat actions
   assignSeat: (seatId: string, customerId: string) => void;
@@ -56,6 +67,10 @@ interface RestaurantState {
   // Time
   advanceTime: (deltaTime: number) => void;
   togglePause: () => void;
+  startNextDay: () => void; // 次の日を開始
+
+  // Speed
+  cycleSpeed: () => void;
 
   // Reset
   reset: () => void;
@@ -67,7 +82,16 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   restaurant: createInitialRestaurant(),
   money: 0,
   gameTime: 0,
-  isPaused: false,
+  currentDay: 1,
+  dayTimeElapsed: 0,
+  isDayEnded: false,
+  isPaused: true, // ゲーム開始前は一時停止
+  gameSpeed: 1,
+
+  getDayProgress: () => {
+    const { dayTimeElapsed } = get();
+    return Math.min(dayTimeElapsed / DAY_DURATION, 1);
+  },
 
   assignSeat: (seatId, customerId) =>
     set((state) => ({
@@ -191,31 +215,71 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     })),
 
   advanceTime: (deltaTime) =>
-    set((state) => ({
-      gameTime: state.gameTime + deltaTime,
-    })),
+    set((state) => {
+      const newDayTimeElapsed = state.dayTimeElapsed + deltaTime;
+      const isDayEnded = newDayTimeElapsed >= DAY_DURATION;
+
+      return {
+        gameTime: state.gameTime + deltaTime,
+        dayTimeElapsed: newDayTimeElapsed,
+        isDayEnded: isDayEnded,
+        isPaused: isDayEnded ? true : state.isPaused, // 1日終了時に自動で一時停止
+      };
+    }),
 
   togglePause: () =>
     set((state) => ({
       isPaused: !state.isPaused,
     })),
 
+  startNextDay: () =>
+    set((state) => ({
+      currentDay: state.currentDay + 1,
+      dayTimeElapsed: 0,
+      isDayEnded: false,
+      isPaused: false,
+    })),
+
+  cycleSpeed: () =>
+    set((state) => {
+      const currentIndex = SPEED_OPTIONS.indexOf(state.gameSpeed);
+      const nextIndex = (currentIndex + 1) % SPEED_OPTIONS.length;
+      return { gameSpeed: SPEED_OPTIONS[nextIndex] };
+    }),
+
   reset: () => {
     orderIdCounter = 0;
+    foodIdCounter = 0;
     set({
       restaurant: createInitialRestaurant(),
       money: 0,
       gameTime: 0,
-      isPaused: false,
+      currentDay: 1,
+      dayTimeElapsed: 0,
+      isDayEnded: false,
+      isPaused: true, // リセット後は一時停止状態
+      gameSpeed: 1,
     });
   },
 }));
 
-// Helper to create order
-export const createOrder = (customerId: string, menuId: string): Order => ({
+let foodIdCounter = 0;
+
+// Helper to create food from menu item
+export const createFood = (menu: MenuItem): Food => ({
+  id: `food-${++foodIdCounter}`,
+  menuId: menu.id,
+  name: menu.name,
+  iconUrl: menu.iconUrl,
+  price: menu.price,
+  cookingTime: menu.cookingTime,
+});
+
+// Helper to create order with food
+export const createOrder = (customerId: string, food: Food): Order => ({
   id: `order-${++orderIdCounter}`,
   customerId,
-  menuId,
+  food,
   state: 'pending',
   cookingProgress: 0,
 });

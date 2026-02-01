@@ -1,11 +1,12 @@
 import type { Position } from './entity';
+import type { Food } from './food';
 
 export type OrderState = 'pending' | 'cooking' | 'ready';
 
 export interface Order {
   id: string;
   customerId: string;
-  menuId: string; // ドリア固定（MVP）
+  food: Food; // 注文された料理
   state: OrderState;
   cookingProgress: number; // 0-1（調理進捗）
 }

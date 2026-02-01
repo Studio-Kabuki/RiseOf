@@ -2,7 +2,7 @@ import type { GameSystem } from '../GameEngine';
 import type { Staff, Position } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore } from '../../store/restaurantStore';
-import { STAFF_IDLE_POSITION } from '../../constants/game';
+import { getStaffIdlePosition } from '../../constants/game';
 
 export class StaffSystem implements GameSystem {
   update(deltaTime: number): void {
@@ -11,10 +11,13 @@ export class StaffSystem implements GameSystem {
     const { restaurant, removeReadyFood, removeOrder } =
       useRestaurantStore.getState();
 
-    for (const s of staff) {
+    for (let i = 0; i < staff.length; i++) {
+      const s = staff[i];
+      const idlePosition = getStaffIdlePosition(i);
+
       switch (s.state) {
         case 'idle':
-          this.handleIdle(s, restaurant.kitchen.readyFoods, updateStaff);
+          this.handleIdle(s, i, idlePosition, restaurant.kitchen.readyFoods, deltaTime, updateStaff);
           break;
 
         case 'moving_to_kitchen':
@@ -42,6 +45,7 @@ export class StaffSystem implements GameSystem {
         case 'serving':
           this.handleServing(
             s,
+            i,
             customers,
             updateCustomer,
             removeOrder,
@@ -54,19 +58,34 @@ export class StaffSystem implements GameSystem {
 
   private handleIdle(
     staff: Staff,
+    _staffIndex: number,
+    idlePosition: Position,
     readyFoods: string[],
+    deltaTime: number,
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
+    // まず定位置に戻る
+    const dx = idlePosition.x - staff.position.x;
+    const dy = idlePosition.y - staff.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 2) {
+      // 定位置に移動中
+      this.moveTowards(staff, idlePosition, deltaTime, updateStaff);
+      return;
+    }
+
+    // 定位置にいる場合、完成した料理があればキッチンへ
     if (readyFoods.length > 0) {
-      // 完成した料理があればキッチンへ
       const orderId = readyFoods[0];
       const order = useRestaurantStore.getState().getOrder(orderId);
 
       if (order) {
         updateStaff(staff.id, {
           state: 'moving_to_kitchen',
-          carryingFoodId: orderId,
+          carryingFood: order.food,
           targetCustomerId: order.customerId,
+          targetOrderId: orderId,
         });
       }
     }
@@ -96,8 +115,8 @@ export class StaffSystem implements GameSystem {
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
     // 料理を受け取る
-    if (staff.carryingFoodId) {
-      removeReadyFood(staff.carryingFoodId);
+    if (staff.targetOrderId) {
+      removeReadyFood(staff.targetOrderId);
     }
 
     updateStaff(staff.id, { state: 'moving_to_customer' });
@@ -110,11 +129,12 @@ export class StaffSystem implements GameSystem {
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
     if (!staff.targetCustomerId) {
-      // 対象がいなければ待機位置へ
+      // 対象がいなければ待機状態へ
       updateStaff(staff.id, {
         state: 'idle',
-        carryingFoodId: null,
+        carryingFood: null,
         targetCustomerId: null,
+        targetOrderId: null,
       });
       return;
     }
@@ -127,8 +147,9 @@ export class StaffSystem implements GameSystem {
       // お客さんがいなくなった
       updateStaff(staff.id, {
         state: 'idle',
-        carryingFoodId: null,
+        carryingFood: null,
         targetCustomerId: null,
+        targetOrderId: null,
       });
       return;
     }
@@ -147,6 +168,7 @@ export class StaffSystem implements GameSystem {
 
   private handleServing(
     staff: Staff,
+    _staffIndex: number,
     customers: ReturnType<typeof useEntityStore.getState>['customers'],
     updateCustomer: (id: string, updates: Partial<import('../../types').Customer>) => void,
     removeOrder: (orderId: string) => void,
@@ -162,16 +184,33 @@ export class StaffSystem implements GameSystem {
     }
 
     // 注文を削除
-    if (staff.carryingFoodId) {
-      removeOrder(staff.carryingFoodId);
+    if (staff.targetOrderId) {
+      removeOrder(staff.targetOrderId);
     }
 
-    // 待機位置へ戻る
+    // 完成した料理があればそのままキッチンへ
+    const readyFoods = useRestaurantStore.getState().restaurant.kitchen.readyFoods;
+    if (readyFoods.length > 0) {
+      const nextOrderId = readyFoods[0];
+      const nextOrder = useRestaurantStore.getState().getOrder(nextOrderId);
+
+      if (nextOrder) {
+        updateStaff(staff.id, {
+          state: 'moving_to_kitchen',
+          carryingFood: nextOrder.food,
+          targetCustomerId: nextOrder.customerId,
+          targetOrderId: nextOrderId,
+        });
+        return;
+      }
+    }
+
+    // 完成した料理がなければ待機状態へ（定位置に戻る）
     updateStaff(staff.id, {
       state: 'idle',
-      carryingFoodId: null,
+      carryingFood: null,
       targetCustomerId: null,
-      targetPosition: { ...STAFF_IDLE_POSITION },
+      targetOrderId: null,
     });
   }
 

@@ -4,3 +4,5 @@ export type { Staff, StaffState } from './staff';
 export type { Seat, Table } from './table';
 export type { Order, OrderState, Kitchen } from './kitchen';
 export type { Restaurant } from './restaurant';
+export type { MenuItem, MenuState } from './menu';
+export type { Food } from './food';

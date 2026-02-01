@@ -1,10 +1,10 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import type { Kitchen, Order } from '../../types';
 
 export class KitchenSprite extends Container {
   private kitchenGraphics: Graphics;
   private progressBars: Map<string, Graphics> = new Map();
-  private readyIcons: Text[] = [];
+  private readyIcons: Sprite[] = [];
 
   constructor(kitchen: Kitchen) {
     super();
@@ -55,15 +55,18 @@ export class KitchenSprite extends Container {
       }
     }
 
-    // 完成した料理を表示
+    // 完成した料理を表示（各注文のFood.iconUrlを使用）
     let xOffset = -30;
     for (let i = 0; i < kitchen.readyFoods.length; i++) {
-      const icon = new Text({
-        text: '🍚',
-        style: { fontSize: 14 },
-      });
-      icon.x = xOffset + i * 20;
-      icon.y = 20;
+      const orderId = kitchen.readyFoods[i];
+      const order = kitchen.orders.find((o) => o.id === orderId);
+      const iconUrl = order?.food.iconUrl || 'https://img.icons8.com/fluency/48/rice-bowl.png';
+      const icon = Sprite.from(iconUrl);
+      icon.width = 20;
+      icon.height = 20;
+      icon.anchor.set(0.5);
+      icon.x = xOffset + i * 24;
+      icon.y = 25;
       this.addChild(icon);
       this.readyIcons.push(icon);
     }

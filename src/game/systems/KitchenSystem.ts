@@ -1,6 +1,5 @@
 import type { GameSystem } from '../GameEngine';
 import { useRestaurantStore } from '../../store/restaurantStore';
-import { COOKING_TIME } from '../../constants/game';
 
 export class KitchenSystem implements GameSystem {
   update(deltaTime: number): void {
@@ -15,8 +14,9 @@ export class KitchenSystem implements GameSystem {
           break;
 
         case 'cooking':
-          // 調理進行
-          const progress = order.cookingProgress + deltaTime / COOKING_TIME;
+          // 調理進行（料理の調理時間を使用）
+          const cookingTime = order.food.cookingTime || 3; // デフォルト3秒
+          const progress = order.cookingProgress + deltaTime / cookingTime;
 
           if (progress >= 1) {
             // 調理完了
