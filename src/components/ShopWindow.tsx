@@ -5,7 +5,7 @@ import { WindowDialog, WindowButton } from './ui';
 // メニュー購入に必要なLIT
 const MENU_COST_LIT = 1;
 
-// スタイル定義
+// Windows 98 風スタイル定義
 const styles = {
   itemsContainer: {
     display: 'flex',
@@ -17,28 +17,33 @@ const styles = {
   menuCard: {
     width: '90px',
     padding: '10px',
-    backgroundColor: 'white',
-    border: '2px solid #7F9DB9',
-    borderRadius: '4px',
+    backgroundColor: '#FFFFFF',
+    border: 'none',
+    borderTop: '2px solid #DFDFDF',
+    borderLeft: '2px solid #DFDFDF',
+    borderBottom: '2px solid #808080',
+    borderRight: '2px solid #808080',
+    borderRadius: 0,
     cursor: 'pointer',
     textAlign: 'center' as const,
-    transition: 'all 0.2s',
+    transition: 'none',
     position: 'relative' as const,
+    fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+    boxShadow: '1px 1px 0 #404040',
   },
-  menuCardHover: {
-    backgroundColor: '#E1F0FF',
-    borderColor: '#003399',
-    transform: 'scale(1.05)',
+  menuCardPressed: {
+    borderTop: '2px solid #808080',
+    borderLeft: '2px solid #808080',
+    borderBottom: '2px solid #DFDFDF',
+    borderRight: '2px solid #DFDFDF',
   },
   menuCardDisabled: {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#ccc',
+    backgroundColor: '#F0F0F0',
     cursor: 'not-allowed',
     opacity: 0.6,
   },
   menuCardSoldOut: {
-    backgroundColor: '#e0e0e0',
-    borderColor: '#999',
+    backgroundColor: '#E8E8E8',
     cursor: 'default',
     opacity: 0.8,
   },
@@ -50,31 +55,32 @@ const styles = {
   menuName: {
     fontSize: '11px',
     fontWeight: 'bold' as const,
-    color: '#003399',
+    color: '#000000',
     marginBottom: '2px',
   },
   menuPrice: {
     fontSize: '10px',
-    color: '#666',
+    color: '#000000',
     marginBottom: '2px',
   },
   menuTime: {
     fontSize: '9px',
-    color: '#999',
+    color: '#404040',
   },
   soldOutBadge: {
     position: 'absolute' as const,
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%) rotate(-15deg)',
-    backgroundColor: '#cc0000',
+    backgroundColor: '#800000',
     color: 'white',
     padding: '4px 8px',
     fontSize: '10px',
     fontWeight: 'bold' as const,
-    borderRadius: '4px',
+    borderRadius: 0,
     whiteSpace: 'nowrap' as const,
     zIndex: 10,
+    border: '1px solid #400000',
   },
 };
 
@@ -95,20 +101,30 @@ function ShopItem({ menu, canBuy, isSoldOut, onPurchase }: ShopItemProps) {
         ...(isSoldOut ? styles.menuCardSoldOut : !canBuy ? styles.menuCardDisabled : {}),
       }}
       onClick={() => isClickable && onPurchase()}
-      onMouseEnter={(e) => {
+      onMouseDown={(e) => {
         if (isClickable) {
-          Object.assign(e.currentTarget.style, styles.menuCardHover);
+          e.currentTarget.style.borderTop = '2px solid #808080';
+          e.currentTarget.style.borderLeft = '2px solid #808080';
+          e.currentTarget.style.borderBottom = '2px solid #DFDFDF';
+          e.currentTarget.style.borderRight = '2px solid #DFDFDF';
+          e.currentTarget.style.boxShadow = 'none';
+        }
+      }}
+      onMouseUp={(e) => {
+        if (isClickable) {
+          e.currentTarget.style.borderTop = '2px solid #DFDFDF';
+          e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
+          e.currentTarget.style.borderBottom = '2px solid #808080';
+          e.currentTarget.style.borderRight = '2px solid #808080';
+          e.currentTarget.style.boxShadow = '1px 1px 0 #404040';
         }
       }}
       onMouseLeave={(e) => {
-        if (isSoldOut) {
-          e.currentTarget.style.backgroundColor = '#e0e0e0';
-          e.currentTarget.style.borderColor = '#999';
-        } else {
-          e.currentTarget.style.backgroundColor = canBuy ? 'white' : '#f0f0f0';
-          e.currentTarget.style.borderColor = canBuy ? '#7F9DB9' : '#ccc';
-        }
-        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.borderTop = '2px solid #DFDFDF';
+        e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
+        e.currentTarget.style.borderBottom = '2px solid #808080';
+        e.currentTarget.style.borderRight = '2px solid #808080';
+        e.currentTarget.style.boxShadow = '1px 1px 0 #404040';
       }}
     >
       {/* SOLD OUT バッジ */}

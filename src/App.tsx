@@ -5,20 +5,37 @@ import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
 import { GameOverWindow } from './components/GameOverWindow';
 import { ShopWindow } from './components/ShopWindow';
+import { WindowButton } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore } from './store';
 import './App.css';
 
+// Windows 98 スタイルの3Dパネル
+const Panel3D = ({ children, inset = false, style = {} }: { children: React.ReactNode; inset?: boolean; style?: React.CSSProperties }) => (
+  <div
+    style={{
+      backgroundColor: '#C0C0C0',
+      borderTop: inset ? '1px solid #808080' : '1px solid #FFFFFF',
+      borderLeft: inset ? '1px solid #808080' : '1px solid #FFFFFF',
+      borderBottom: inset ? '1px solid #FFFFFF' : '1px solid #808080',
+      borderRight: inset ? '1px solid #FFFFFF' : '1px solid #808080',
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
+
 function App() {
   const [showGame, setShowGame] = useState(false);
-  const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen } = useRestaurantStore();
+  const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
   const { registeredMenus, gameStarted, reset: resetMenu, startGame } = useMenuStore();
   const { openShop, reset: resetShop } = useShopStore();
 
   const handleGameStart = () => {
     setShowGame(true);
-    startGame(); // ゲーム開始
-    openShop(); // ショップを開く
+    startGame();
+    openShop();
   };
 
   const handleReset = () => {
@@ -30,7 +47,7 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" style={{ fontFamily: 'MS Sans Serif, Tahoma, sans-serif' }}>
       {/* ショップウィンドウ */}
       <ShopWindow />
 
@@ -40,37 +57,35 @@ function App() {
       {/* ゲームオーバーウィンドウ */}
       <GameOverWindow onRestart={handleReset} />
 
-      {/* ヘッダー */}
+      {/* ヘッダー（タイトルバー風） */}
       <div
         style={{
+          background: 'linear-gradient(90deg, #2E8B57 0%, #3CB371 15%, #66CDAA 35%, #98FB98 55%, #F0FFF0 80%, #FFFFFF 100%)',
+          padding: '4px 8px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '6px 20px',
-          backgroundColor: '#333',
-          color: 'white',
         }}
       >
-        {/* 時間ゲージ + ノルマゲージ（中央配置） */}
         <DayClock />
       </div>
 
       {/* ゲームエリア */}
-      <div
+      <Panel3D
+        inset
         style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: showGame ? '20px' : '0',
-          backgroundColor: '#e0e0e0',
-          minHeight: 'calc(100vh - 220px)',
+          padding: showGame ? '8px' : '0',
+          minHeight: 'calc(100vh - 180px)',
           position: 'relative',
         }}
       >
         {showGame ? (
           <>
             <RestaurantMap />
-            {/* 閉店オーバーレイ（開店前） */}
+            {/* 閉店オーバーレイ - 開店ボタン */}
             {(!gameStarted || !isOpen) && (
               <div
                 style={{
@@ -83,152 +98,146 @@ function App() {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  pointerEvents: 'none',
+                  cursor: 'pointer',
                 }}
+                onClick={() => useRestaurantStore.getState().openStore()}
               >
-                <div
+                <button
                   style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    color: '#ff6b6b',
-                    padding: '20px 40px',
-                    borderRadius: '8px',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    border: '3px solid #ff6b6b',
+                    backgroundColor: '#C0C0C0',
+                    border: 'none',
+                    borderTop: '3px solid #FFFFFF',
+                    borderLeft: '3px solid #FFFFFF',
+                    borderBottom: '3px solid #808080',
+                    borderRight: '3px solid #808080',
+                    padding: '16px 48px',
+                    cursor: 'pointer',
+                    fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
                   }}
                 >
-                  CLOSED
-                </div>
+                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#008542' }}>
+                    開店する
+                  </span>
+                </button>
+              </div>
+            )}
+            {/* 次の日へオーバーレイ */}
+            {gameStarted && isOpen && canClose && isNormaAchieved() && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                }}
+                onClick={triggerClose}
+              >
+                <button
+                  style={{
+                    backgroundColor: '#C0C0C0',
+                    border: 'none',
+                    borderTop: '3px solid #808080',
+                    borderLeft: '3px solid #808080',
+                    borderBottom: '3px solid #FFFFFF',
+                    borderRight: '3px solid #FFFFFF',
+                    padding: '16px 48px',
+                    cursor: 'pointer',
+                    fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+                  }}
+                >
+                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#008000' }}>
+                    次の日へ
+                  </span>
+                </button>
               </div>
             )}
           </>
         ) : (
           <TitleScreen onStart={handleGameStart} />
         )}
-      </div>
+      </Panel3D>
 
-      {/* メニューバー（フッター付近） */}
-      <div
+      {/* メニューバー */}
+      <Panel3D
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '8px',
-          padding: '8px 20px',
-          backgroundColor: '#ECE9D8',
-          borderTop: '2px solid #7F9DB9',
-          borderBottom: '2px solid #7F9DB9',
+          padding: '4px 16px',
         }}
       >
-        <span style={{ fontSize: '12px', color: '#003399', fontWeight: 'bold' }}>
+        <span style={{ fontSize: '11px', color: '#000000', fontWeight: 'bold' }}>
           メニュー:
         </span>
         {registeredMenus.map((menu) => (
-          <div
+          <Panel3D
             key={menu.id}
+            inset
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '4px 8px',
-              backgroundColor: 'white',
-              border: '1px solid #7F9DB9',
-              borderRadius: '4px',
+              padding: '2px 6px',
+              backgroundColor: '#FFFFFF',
             }}
           >
             <img
               src={menu.iconUrl}
               alt={menu.name}
-              style={{ width: '24px', height: '24px' }}
+              style={{ width: '20px', height: '20px' }}
             />
-            <span style={{ fontSize: '11px', color: '#333' }}>{menu.name}</span>
-            <span style={{ fontSize: '10px', color: '#666' }}>{menu.price}円</span>
-          </div>
+            <span style={{ fontSize: '11px', color: '#000000' }}>{menu.name}</span>
+            <span style={{ fontSize: '10px', color: '#808080' }}>{menu.price}円</span>
+          </Panel3D>
         ))}
         {registeredMenus.length === 0 && (
-          <span style={{ fontSize: '11px', color: '#999' }}>
+          <span style={{ fontSize: '11px', color: '#808080' }}>
             メニューを選択してください
           </span>
         )}
-      </div>
+      </Panel3D>
 
       {/* コントロールパネル */}
-      <div
+      <Panel3D
         style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: '10px',
-          padding: '10px 20px',
-          backgroundColor: '#333',
+          gap: '8px',
+          padding: '6px 16px',
         }}
       >
-        <button
+        <WindowButton
           onClick={togglePause}
           disabled={!gameStarted}
-          style={{
-            padding: '10px 20px',
-            fontSize: '1rem',
-            cursor: gameStarted ? 'pointer' : 'not-allowed',
-            backgroundColor: !gameStarted ? '#666' : isPaused ? '#4caf50' : '#ff9800',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            opacity: gameStarted ? 1 : 0.5,
-          }}
         >
           {isPaused ? '▶ 再開' : '⏸ 一時停止'}
-        </button>
+        </WindowButton>
 
-        <button
+        <WindowButton
           onClick={cycleSpeed}
           disabled={!gameStarted}
-          style={{
-            padding: '10px 20px',
-            fontSize: '1rem',
-            cursor: gameStarted ? 'pointer' : 'not-allowed',
-            backgroundColor: !gameStarted ? '#666' : gameSpeed === 1 ? '#9e9e9e' : '#e91e63',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            minWidth: '80px',
-            opacity: gameStarted ? 1 : 0.5,
-          }}
         >
           x{gameSpeed}
-        </button>
+        </WindowButton>
 
-        <button
+        <WindowButton
           onClick={openShop}
           disabled={!gameStarted}
-          style={{
-            padding: '10px 20px',
-            fontSize: '1rem',
-            cursor: gameStarted ? 'pointer' : 'not-allowed',
-            backgroundColor: gameStarted ? '#FF9800' : '#666',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            opacity: gameStarted ? 1 : 0.5,
-          }}
         >
           ショップ
-        </button>
+        </WindowButton>
 
-        <button
-          onClick={handleReset}
-          style={{
-            padding: '10px 20px',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            backgroundColor: '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-          }}
-        >
+        <WindowButton onClick={handleReset}>
           リセット
-        </button>
-      </div>
+        </WindowButton>
+      </Panel3D>
     </div>
   );
 }

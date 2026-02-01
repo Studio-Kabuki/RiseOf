@@ -21,15 +21,12 @@ export function WindowDialog({
   closeDisabled = false,
   zIndex = 1000,
   variant = 'default',
-  contentPadding = '20px',
+  contentPadding = '16px',
 }: WindowDialogProps) {
   const isError = variant === 'error';
 
-  const headerGradient = isError
-    ? 'linear-gradient(180deg, #CC0000 0%, #990000 10%, #990000 90%, #660000 100%)'
-    : 'linear-gradient(180deg, #0A246A 0%, #0054E3 10%, #0054E3 90%, #0A246A 100%)';
-
-  const borderColor = isError ? '#CC0000' : '#0054E3';
+  // Windows 98 スタイルのタイトルバー色（サイゼリヤ風グリーングラデーション）
+  const titleBarColor = isError ? '#800000' : 'linear-gradient(90deg, #2E8B57 0%, #3CB371 15%, #66CDAA 35%, #98FB98 55%, #F0FFF0 80%, #FFFFFF 100%)';
 
   const handleCloseClick = () => {
     if (!closeDisabled && onClose) {
@@ -45,90 +42,106 @@ export function WindowDialog({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex,
       }}
     >
+      {/* ウィンドウ本体 */}
       <div
         style={{
           width,
-          backgroundColor: '#ECE9D8',
-          border: `2px solid ${borderColor}`,
-          borderRadius: '8px 8px 0 0',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-          fontFamily: 'Tahoma, "MS UI Gothic", sans-serif',
+          backgroundColor: '#C0C0C0',
+          // Windows 98 風の3Dボーダー（外側）
+          borderTop: '2px solid #FFFFFF',
+          borderLeft: '2px solid #FFFFFF',
+          borderBottom: '2px solid #404040',
+          borderRight: '2px solid #404040',
+          boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.4)',
+          fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
         }}
       >
-        {/* タイトルバー */}
+        {/* 内側のボーダー */}
         <div
           style={{
-            background: headerGradient,
-            padding: '6px 10px',
-            borderRadius: '6px 6px 0 0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            borderTop: '1px solid #DFDFDF',
+            borderLeft: '1px solid #DFDFDF',
+            borderBottom: '1px solid #808080',
+            borderRight: '1px solid #808080',
           }}
         >
-          <span
-            style={{
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '13px',
-            }}
-          >
-            {title}
-          </span>
-
-          {/* 閉じるボタン */}
-          {onClose && (
-            <button
-              onClick={handleCloseClick}
-              disabled={closeDisabled}
-              style={{
-                width: '21px',
-                height: '21px',
-                background: closeDisabled
-                  ? 'linear-gradient(180deg, #999 0%, #777 50%, #666 100%)'
-                  : 'linear-gradient(180deg, #F5A68E 0%, #C25046 50%, #9E2F25 100%)',
-                border: '1px solid #fff',
-                borderRadius: '3px',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                cursor: closeDisabled ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: closeDisabled ? 0.6 : 1,
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* コンテンツ */}
-        <div style={{ padding: contentPadding }}>{children}</div>
-
-        {/* フッター */}
-        {footer && (
+          {/* タイトルバー */}
           <div
             style={{
+              background: titleBarColor,
+              padding: '3px 4px',
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '12px',
-              backgroundColor: '#f0f0f0',
-              borderTop: '1px solid #ccc',
+              justifyContent: 'space-between',
+              margin: '2px',
             }}
           >
-            {footer}
+            <span
+              style={{
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '12px',
+                marginLeft: '2px',
+              }}
+            >
+              {title}
+            </span>
+
+            {/* 閉じるボタン */}
+            {onClose && (
+              <button
+                onClick={handleCloseClick}
+                disabled={closeDisabled}
+                style={{
+                  width: '16px',
+                  height: '14px',
+                  backgroundColor: '#C0C0C0',
+                  borderTop: closeDisabled ? '1px solid #808080' : '1px solid #FFFFFF',
+                  borderLeft: closeDisabled ? '1px solid #808080' : '1px solid #FFFFFF',
+                  borderBottom: closeDisabled ? '1px solid #FFFFFF' : '1px solid #404040',
+                  borderRight: closeDisabled ? '1px solid #FFFFFF' : '1px solid #404040',
+                  color: closeDisabled ? '#808080' : '#000000',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  cursor: closeDisabled ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
-        )}
+
+          {/* コンテンツ */}
+          <div style={{ padding: contentPadding }}>{children}</div>
+
+          {/* フッター */}
+          {footer && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                borderTop: '1px solid #808080',
+                backgroundColor: '#C0C0C0',
+              }}
+            >
+              {footer}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

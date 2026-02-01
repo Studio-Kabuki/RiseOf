@@ -1,4 +1,28 @@
-import { useRestaurantStore, useMenuStore } from '../store';
+import { useRestaurantStore } from '../store';
+
+// Windows 98 スタイルの3Dパネル
+const Panel3D = ({
+  children,
+  inset = false,
+  style = {},
+}: {
+  children: React.ReactNode;
+  inset?: boolean;
+  style?: React.CSSProperties;
+}) => (
+  <div
+    style={{
+      backgroundColor: '#C0C0C0',
+      borderTop: inset ? '1px solid #808080' : '1px solid #FFFFFF',
+      borderLeft: inset ? '1px solid #808080' : '1px solid #FFFFFF',
+      borderBottom: inset ? '1px solid #FFFFFF' : '1px solid #808080',
+      borderRight: inset ? '1px solid #FFFFFF' : '1px solid #808080',
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
 
 export const DayClock = () => {
   const {
@@ -6,14 +30,9 @@ export const DayClock = () => {
     getDayProgress,
     money,
     currentRent,
-    canClose,
     isNormaAchieved,
-    triggerClose,
-    isOpen,
-    openStore,
     lit,
   } = useRestaurantStore();
-  const { gameStarted } = useMenuStore();
   const progress = getDayProgress();
   const normaAchieved = isNormaAchieved();
   const normaProgress = Math.min(money / currentRent, 1);
@@ -27,20 +46,14 @@ export const DayClock = () => {
 
   // ノルマゲージのパラメータ（横長バー）
   const normaBarWidth = 200;
-  const normaBarHeight = 24;
-
-  const handleClose = () => {
-    if (canClose && normaAchieved) {
-      triggerClose();
-    }
-  };
+  const normaBarHeight = 20;
 
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '12px',
       }}
     >
       {/* 時間制限円形ゲージ（中に閉店ボタン/次の日へ表示） */}
@@ -48,7 +61,7 @@ export const DayClock = () => {
         <svg
           width={timeSize}
           height={timeSize}
-          style={{ transform: 'rotate(-90deg)' }}
+          style={{ transform: 'rotate(-90deg)', pointerEvents: 'none' }}
         >
           {/* 背景円 */}
           <circle
@@ -56,7 +69,7 @@ export const DayClock = () => {
             cy={timeSize / 2}
             r={timeRadius}
             fill="none"
-            stroke="#555"
+            stroke="#808080"
             strokeWidth={timeStrokeWidth}
           />
           {/* 進捗円 */}
@@ -65,11 +78,11 @@ export const DayClock = () => {
             cy={timeSize / 2}
             r={timeRadius}
             fill="none"
-            stroke={progress >= 1 ? (normaAchieved ? '#4caf50' : '#ff6b6b') : '#ffa726'}
+            stroke={progress >= 1 ? (normaAchieved ? '#008000' : '#800000') : '#008542'}
             strokeWidth={timeStrokeWidth}
             strokeDasharray={timeCircumference}
             strokeDashoffset={timeStrokeDashoffset}
-            strokeLinecap="round"
+            strokeLinecap="butt"
             style={{ transition: 'stroke-dashoffset 0.1s' }}
           />
         </svg>
@@ -77,71 +90,29 @@ export const DayClock = () => {
         <div
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            top: timeStrokeWidth,
+            left: timeStrokeWidth,
+            right: timeStrokeWidth,
+            bottom: timeStrokeWidth,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
           }}
         >
-          {gameStarted && !isOpen ? (
-            // 閉店中：開店ボタン
-            <button
-              onClick={openStore}
-              style={{
-                background: 'linear-gradient(180deg, #ff9800 0%, #f57c00 100%)',
-                border: 'none',
-                borderRadius: '50%',
-                width: timeSize - timeStrokeWidth * 2 - 2,
-                height: timeSize - timeStrokeWidth * 2 - 2,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '10px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              <span>開店</span>
-            </button>
-          ) : canClose && normaAchieved ? (
-            // 閉店可能：次の日へボタン
-            <button
-              onClick={handleClose}
-              style={{
-                background: 'linear-gradient(180deg, #4caf50 0%, #388e3c 100%)',
-                border: 'none',
-                borderRadius: '50%',
-                width: timeSize - timeStrokeWidth * 2 - 2,
-                height: timeSize - timeStrokeWidth * 2 - 2,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              <span>次の日へ</span>
-            </button>
-          ) : (
-            // 通常：DAY表示
-            <>
-              <span style={{ fontSize: '8px', color: '#aaa' }}>DAY</span>
-              <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'white' }}>
-                {currentDay}
-              </span>
-            </>
-          )}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontSize: '7px', color: '#FFFFFF', textShadow: '0 0 2px #000' }}>DAY</span>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#FFFFFF', textShadow: '0 0 2px #000' }}>
+              {currentDay}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -150,25 +121,29 @@ export const DayClock = () => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '2px',
         }}
       >
+        {/* ラベル */}
+        <div style={{ fontSize: '10px', color: '#FFFFFF', fontWeight: 'bold' }}>
+          売上目標
+        </div>
         {/* ノルマ進捗バー */}
-        <div
+        <Panel3D
+          inset
           style={{
             width: normaBarWidth,
             height: normaBarHeight,
-            backgroundColor: '#444',
-            borderRadius: '4px',
             overflow: 'hidden',
             position: 'relative',
+            backgroundColor: '#FFFFFF',
           }}
         >
           <div
             style={{
               width: `${normaProgress * 100}%`,
               height: '100%',
-              backgroundColor: normaAchieved ? '#4caf50' : '#ff9800',
+              backgroundColor: normaAchieved ? '#008000' : '#008542',
               transition: 'width 0.2s, background-color 0.2s',
             }}
           />
@@ -180,37 +155,40 @@ export const DayClock = () => {
               right: 0,
               width: '2px',
               height: '100%',
-              backgroundColor: '#fff',
+              backgroundColor: '#800000',
             }}
           />
-        </div>
-
-        {/* 金額表示 */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '11px',
-          }}
-        >
-          <span style={{ color: normaAchieved ? '#4caf50' : '#ff9800' }}>
-            {money}円
-          </span>
-          <span style={{ color: '#aaa' }}>
-            / {currentRent}円
-          </span>
-        </div>
+          {/* 金額テキスト（バー上に表示） */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: normaProgress > 0.5 ? '#FFFFFF' : '#000000',
+              textShadow: normaProgress > 0.5 ? '0 0 2px #000' : 'none',
+            }}
+          >
+            {money}円 / {currentRent}円
+          </div>
+        </Panel3D>
       </div>
 
       {/* LIT表示 */}
-      <div
+      <Panel3D
+        inset
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
           padding: '4px 10px',
-          backgroundColor: '#444',
-          borderRadius: '12px',
+          backgroundColor: '#FFFFFF',
         }}
       >
         <span style={{ fontSize: '14px' }}>🔥</span>
@@ -218,12 +196,12 @@ export const DayClock = () => {
           style={{
             fontSize: '14px',
             fontWeight: 'bold',
-            color: '#ff9800',
+            color: '#800000',
           }}
         >
-          {lit}
+          {lit} LIT
         </span>
-      </div>
+      </Panel3D>
     </div>
   );
 };
