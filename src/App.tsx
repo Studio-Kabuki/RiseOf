@@ -105,7 +105,7 @@ function App() {
           {/* タイトルバー */}
           <div
             style={{
-              background: 'linear-gradient(90deg, #2E8B57 0%, #3CB371 15%, #66CDAA 35%, #98FB98 55%, #F0FFF0 80%, #FFFFFF 100%)',
+              background: 'linear-gradient(90deg, #8B0000 0%, #CC0000 20%, #FF4500 40%, #FF6600 60%, #FFA500 80%, #FFD700 100%)',
               padding: '3px 4px',
               display: 'flex',
               alignItems: 'center',
@@ -124,7 +124,7 @@ function App() {
                 marginLeft: '2px',
               }}
             >
-              イタリアンレストランシミュレーター
+              アメリカンダイナーシミュレーター
             </span>
             <div style={{ display: 'flex', gap: '2px' }}>
               {/* ヘルプボタン */}

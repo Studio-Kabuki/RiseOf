@@ -27,6 +27,7 @@ interface StaffStoreState {
   hireStaff: (staff: StaffDefinition) => boolean;
   fireStaff: (staffId: string) => void;
   replaceStaff: (oldId: string, newStaff: StaffDefinition) => void;
+  reorderStaff: (fromIndex: number, toIndex: number) => void; // 順番入れ替え
   recalculateAbilities: () => void;
   increaseMaxSlots: () => void; // 店員枠を1増やす
   reset: () => void;
@@ -154,6 +155,17 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       hiredStaff: newHiredStaff,
       ...abilities,
     });
+  },
+
+  reorderStaff: (fromIndex: number, toIndex: number) => {
+    const { hiredStaff } = get();
+    if (fromIndex < 0 || fromIndex >= hiredStaff.length) return;
+    if (toIndex < 0 || toIndex >= hiredStaff.length) return;
+
+    const newStaff = [...hiredStaff];
+    const [moved] = newStaff.splice(fromIndex, 1);
+    newStaff.splice(toIndex, 0, moved);
+    set({ hiredStaff: newStaff });
   },
 
   recalculateAbilities: () => {

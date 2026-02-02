@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { loadMenusFromCSV } from '../data/menuLoader';
 import { loadStaffsFromCSV } from '../data/staffLoader';
+import titleImage from '../../.docs/title.png';
 
 interface TitleScreenProps {
   onStart: () => void;
@@ -32,58 +33,34 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        background: 'linear-gradient(180deg, #1a472a 0%, #2d5a3d 50%, #1a472a 100%)',
+        backgroundColor: '#F5F5DC',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* 装飾ライン */}
+      {/* タイトル画像（縦合わせ） */}
       <div
         style={{
           position: 'absolute',
-          top: '20%',
+          top: 0,
           left: 0,
           right: 0,
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent, #c9a227, transparent)',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '20%',
-          left: 0,
-          right: 0,
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent, #c9a227, transparent)',
-        }}
-      />
-
-      {/* タイトル */}
-      <h1
-        style={{
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#ffffff',
-          textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-          marginBottom: '8px',
-          fontFamily: 'Georgia, serif',
+          bottom: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
-        🍝 サイゼリヤ
-      </h1>
-      <h2
-        style={{
-          fontSize: '32px',
-          color: '#c9a227',
-          textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-          marginBottom: '48px',
-          fontFamily: 'Georgia, serif',
-          letterSpacing: '8px',
-        }}
-      >
-        SIMULATOR
-      </h2>
+        <img
+          src={titleImage}
+          alt="アメリカンダイナーシミュレーター"
+          style={{
+            height: '100%',
+            width: 'auto',
+            objectFit: 'contain',
+          }}
+        />
+      </div>
 
       {/* ローディング / スタートボタン */}
       {isLoading ? (
@@ -108,41 +85,43 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
         <button
           onClick={onStart}
           style={{
-            padding: '16px 48px',
-            fontSize: '20px',
-            fontWeight: 'bold',
-            color: '#1a472a',
-            backgroundColor: '#c9a227',
-            border: 'none',
-            borderRadius: '8px',
+            position: 'absolute',
+            bottom: '24px',
+            zIndex: 1,
+            padding: '6px 18px',
+            backgroundColor: '#C0C0C0',
+            borderTop: '3px solid #FFFFFF',
+            borderLeft: '3px solid #FFFFFF',
+            borderBottom: '3px solid #808080',
+            borderRight: '3px solid #808080',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+            outline: 'none',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
+          onMouseDown={(e) => {
+            e.currentTarget.style.borderTop = '3px solid #808080';
+            e.currentTarget.style.borderLeft = '3px solid #808080';
+            e.currentTarget.style.borderBottom = '3px solid #FFFFFF';
+            e.currentTarget.style.borderRight = '3px solid #FFFFFF';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.borderTop = '3px solid #FFFFFF';
+            e.currentTarget.style.borderLeft = '3px solid #FFFFFF';
+            e.currentTarget.style.borderBottom = '3px solid #808080';
+            e.currentTarget.style.borderRight = '3px solid #808080';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            e.currentTarget.style.borderTop = '3px solid #FFFFFF';
+            e.currentTarget.style.borderLeft = '3px solid #FFFFFF';
+            e.currentTarget.style.borderBottom = '3px solid #808080';
+            e.currentTarget.style.borderRight = '3px solid #808080';
           }}
         >
-          ゲームスタート
+          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#000000' }}>
+            OPEN
+          </span>
         </button>
       )}
-
-      {/* フッターテキスト */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '24px',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: '12px',
-        }}
-      >
-        メニューを選んでお店を経営しよう
-      </div>
     </div>
   );
 }

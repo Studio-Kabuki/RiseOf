@@ -26,8 +26,8 @@ export function WindowDialog({
 }: WindowDialogProps) {
   const isError = variant === 'error';
 
-  // Windows 98 スタイルのタイトルバー色（サイゼリヤ風グリーングラデーション）
-  const titleBarColor = isError ? '#800000' : 'linear-gradient(90deg, #2E8B57 0%, #3CB371 15%, #66CDAA 35%, #98FB98 55%, #F0FFF0 80%, #FFFFFF 100%)';
+  // Windows 98 スタイルのタイトルバー色（アメリカンダイナー風レッドグラデーション）
+  const titleBarColor = isError ? '#800000' : 'linear-gradient(90deg, #8B0000 0%, #CC0000 20%, #FF4500 40%, #FF6600 60%, #FFA500 80%, #FFD700 100%)';
 
   const handleCloseClick = () => {
     if (!closeDisabled && onClose) {

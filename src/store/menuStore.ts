@@ -27,6 +27,7 @@ interface MenuState {
   addMenu: (menu: MenuItem) => void;
   removeMenu: (menuId: string) => void;
   replaceMenu: (oldId: string, newMenu: MenuItem) => void;
+  reorderMenus: (fromIndex: number, toIndex: number) => void; // 順番入れ替え
   openMenuSelect: () => void;
   closeMenuSelect: () => void;
   selectMenu: (menuId: string) => void;
@@ -65,6 +66,17 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     const newMenus = registeredMenus
       .filter((m) => m.id !== oldId)
       .concat(newMenu);
+    set({ registeredMenus: newMenus });
+  },
+
+  reorderMenus: (fromIndex: number, toIndex: number) => {
+    const { registeredMenus } = get();
+    if (fromIndex < 0 || fromIndex >= registeredMenus.length) return;
+    if (toIndex < 0 || toIndex >= registeredMenus.length) return;
+
+    const newMenus = [...registeredMenus];
+    const [moved] = newMenus.splice(fromIndex, 1);
+    newMenus.splice(toIndex, 0, moved);
     set({ registeredMenus: newMenus });
   },
 
