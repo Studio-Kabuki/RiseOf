@@ -8,9 +8,9 @@ import { ShopWindow } from './components/ShopWindow';
 import { MenuSelectWindow } from './components/MenuSelectWindow';
 import { UpgradeWindow } from './components/UpgradeWindow';
 import { MoneyEffects } from './components/MoneyEffects';
-import { MenuBoardWindow } from './components/MenuBoardWindow';
+import { StatusPanel } from './components/StatusPanel';
 import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
-import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore, useMenuBoardStore } from './store';
+import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
 import './App.css';
 
 // Windows 98 スタイルの3Dパネル
@@ -33,10 +33,9 @@ function App() {
   const [showGame, setShowGame] = useState(false);
   const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
-  const { registeredMenus, gameStarted, reset: resetMenu, startGame, maxMenuSlots, openMenuSelect } = useMenuStore();
+  const { gameStarted, reset: resetMenu, startGame, openMenuSelect } = useMenuStore();
   const { openShop, reset: resetShop } = useShopStore();
-  const { reset: resetStaff, hiredStaff } = useStaffStore();
-  const { startDayAnimation, reset: resetMenuBoard } = useMenuBoardStore();
+  const { reset: resetStaff } = useStaffStore();
 
   const handleGameStart = () => {
     setShowGame(true);
@@ -44,9 +43,9 @@ function App() {
     openMenuSelect(); // メニュー選択ウィンドウを開く
   };
 
-  // 開店ボタン押下時：メニュー表演出を開始
+  // 開店ボタン押下時：店を開く（ファンファーレはStatusPanelで処理）
   const handleOpenStore = () => {
-    startDayAnimation(registeredMenus, hiredStaff);
+    useRestaurantStore.getState().openStore();
   };
 
   const handleReset = () => {
@@ -55,7 +54,6 @@ function App() {
     resetMenu();
     resetShop();
     resetStaff();
-    resetMenuBoard();
     setShowGame(false);
   };
 
@@ -75,9 +73,6 @@ function App() {
 
       {/* 店舗拡張ウィンドウ */}
       <UpgradeWindow />
-
-      {/* メニュー表ウィンドウ（1日開始時の演出） */}
-      <MenuBoardWindow />
 
       {/* 全体をウィンドウ風に */}
       <div
@@ -230,72 +225,8 @@ function App() {
         )}
       </Panel3D>
 
-          {/* メニューバー */}
-          <Panel3D
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              margin: '2px 2px 0 2px',
-              height: '36px',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: '11px', color: '#000000', fontWeight: 'bold' }}>
-              メニュー:
-            </span>
-            {Array.from({ length: maxMenuSlots }).map((_, index) => {
-              const menu = registeredMenus[index];
-              return menu ? (
-                <Panel3D
-                  key={menu.id}
-                  inset
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 6px',
-                    backgroundColor: '#FFFFFF',
-                    width: '90px',
-                    height: '24px',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <img
-                    src={menu.iconUrl}
-                    alt={menu.name}
-                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
-                  />
-                  <span style={{ fontSize: '10px', color: '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{menu.name}</span>
-                  <span style={{ fontSize: '9px', color: '#808080', whiteSpace: 'nowrap', flexShrink: 0 }}>{menu.price}円</span>
-                </Panel3D>
-              ) : (
-                <div
-                  key={`empty-${index}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2px 6px',
-                    backgroundColor: '#E8E8E8',
-                    borderTop: '1px solid #808080',
-                    borderLeft: '1px solid #808080',
-                    borderBottom: '1px solid #FFFFFF',
-                    borderRight: '1px solid #FFFFFF',
-                    width: '90px',
-                    height: '24px',
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                  }}
-                  onClick={openShop}
-                >
-                  <span style={{ fontSize: '10px', color: '#808080' }}>+ 追加</span>
-                </div>
-              );
-            })}
-          </Panel3D>
+          {/* ステータスパネル（スタッフ・メニュー・客単価） */}
+          <StatusPanel />
 
           {/* コントロールパネル */}
           <Panel3D
