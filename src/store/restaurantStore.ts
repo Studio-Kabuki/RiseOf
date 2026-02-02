@@ -10,6 +10,7 @@ import {
   BASE_RENT,
   RENT_EXPONENT,
   INITIAL_LIT,
+  ICONS,
 } from '../constants/game';
 
 // 初期レストラン設定
@@ -464,14 +465,12 @@ export const createComboFood = (menus: MenuItem[]): Food => {
   const totalPrice = menus.reduce((sum, menu) => sum + menu.price, 0);
   // 調理時間は登録メニューの中で最長のものを使用
   const maxCookingTime = Math.max(...menus.map((menu) => menu.cookingTime), 0);
-  // 表示用に最初のメニューのアイコンを使用
-  const firstMenu = menus[0];
 
   return {
     id: `food-${++foodIdCounter}`,
     menuId: 'combo',
     name: '定食',
-    iconUrl: firstMenu?.iconUrl || '',
+    iconUrl: ICONS.meal,
     price: totalPrice,
     cookingTime: maxCookingTime,
   };
