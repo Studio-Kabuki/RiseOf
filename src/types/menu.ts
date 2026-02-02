@@ -17,6 +17,7 @@ export interface MenuItem {
   iconUrl: string;
   ability?: AbilityType;  // 特殊能力の種類
   params?: MenuParams;    // 可変長パラメータ（例: { value: 30, multiplier: 20 }）
+  description?: string;   // 能力の説明（\nで改行対応）
 }
 
 // メニューの状態

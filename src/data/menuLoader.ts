@@ -22,6 +22,10 @@ function parseMenuCSV(csvText: string): MenuItem[] {
     const paramsValue = values[6]?.trim() || '';
     const params: MenuParams = parseParams(paramsValue);
 
+    // description列（8番目の列、インデックス7）- \nを改行に変換
+    const descriptionRaw = values[7]?.trim() || '';
+    const description = descriptionRaw.replace(/\\n/g, '\n');
+
     const menu: MenuItem = {
       id: values[0],
       name: values[1],
@@ -30,6 +34,7 @@ function parseMenuCSV(csvText: string): MenuItem[] {
       iconUrl: values[4],
       ability: ability !== 'none' ? ability : undefined,
       params: Object.keys(params).length > 0 ? params : undefined,
+      description: description || undefined,
     };
     menus.push(menu);
   }

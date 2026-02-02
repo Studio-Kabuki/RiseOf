@@ -67,6 +67,14 @@ const styles = {
     fontSize: '9px',
     color: '#404040',
   },
+  menuDescription: {
+    fontSize: '9px',
+    color: '#333',
+    marginTop: '4px',
+    whiteSpace: 'pre-line' as const,
+    lineHeight: '1.3',
+    textAlign: 'left' as const,
+  },
   soldOutBadge: {
     position: 'absolute' as const,
     top: '50%',
@@ -154,12 +162,14 @@ function ShopItem({ menu, canBuy, isSoldOut, onPurchase }: ShopItemProps) {
       }}>
         売値: {menu.price}円
       </div>
-      <div style={{
-        ...styles.menuTime,
-        opacity: isSoldOut ? 0.5 : 1,
-      }}>
-        調理: {menu.cookingTime}秒
-      </div>
+      {menu.description && (
+        <div style={{
+          ...styles.menuDescription,
+          opacity: isSoldOut ? 0.5 : 1,
+        }}>
+          {menu.description}
+        </div>
+      )}
       {!isSoldOut && (
         <div style={{
           fontSize: '10px',
