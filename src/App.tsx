@@ -8,8 +8,9 @@ import { ShopWindow } from './components/ShopWindow';
 import { MenuSelectWindow } from './components/MenuSelectWindow';
 import { UpgradeWindow } from './components/UpgradeWindow';
 import { MoneyEffects } from './components/MoneyEffects';
+import { MenuBoardWindow } from './components/MenuBoardWindow';
 import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
-import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
+import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore, useMenuBoardStore } from './store';
 import './App.css';
 
 // Windows 98 スタイルの3Dパネル
@@ -34,12 +35,18 @@ function App() {
   const { reset: resetEntities } = useEntityStore();
   const { registeredMenus, gameStarted, reset: resetMenu, startGame, maxMenuSlots, openMenuSelect } = useMenuStore();
   const { openShop, reset: resetShop } = useShopStore();
-  const { reset: resetStaff } = useStaffStore();
+  const { reset: resetStaff, hiredStaff } = useStaffStore();
+  const { startDayAnimation, reset: resetMenuBoard } = useMenuBoardStore();
 
   const handleGameStart = () => {
     setShowGame(true);
     startGame();
     openMenuSelect(); // メニュー選択ウィンドウを開く
+  };
+
+  // 開店ボタン押下時：メニュー表演出を開始
+  const handleOpenStore = () => {
+    startDayAnimation(registeredMenus, hiredStaff);
   };
 
   const handleReset = () => {
@@ -48,6 +55,7 @@ function App() {
     resetMenu();
     resetShop();
     resetStaff();
+    resetMenuBoard();
     setShowGame(false);
   };
 
@@ -67,6 +75,9 @@ function App() {
 
       {/* 店舗拡張ウィンドウ */}
       <UpgradeWindow />
+
+      {/* メニュー表ウィンドウ（1日開始時の演出） */}
+      <MenuBoardWindow />
 
       {/* 全体をウィンドウ風に */}
       <div
@@ -181,7 +192,7 @@ function App() {
                 }}
               >
                 <Win98LargeButton
-                  onClick={() => useRestaurantStore.getState().openStore()}
+                  onClick={handleOpenStore}
                   color="#008542"
                   variant="raised"
                 >

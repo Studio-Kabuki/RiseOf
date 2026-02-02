@@ -10,3 +10,9 @@ number,string,string,string,string,number,string,string
 0,keiri,経理担当,https://img.icons8.com/color/96/accountant.png,shop_money_mult,1.1,none,common
 0,italian_chef,イタリア帰りのシェフ,https://img.icons8.com/color/96/user-male-circle.png,attribute_money_mult,1.8,pasta,epic
 0,sommelier,ベテランソムリエ,https://img.icons8.com/color/96/old-man.png,attribute_lit_mult,1.5,drink,rare
+
+
+newbie,新人バイト,https://img.icons8.com/fluency/48/waiter.png,customer_speed,value=1.5,来店スピード×1.5倍,1
+appetizer_master,前菜の鬼,https://img.icons8.com/fluency/48/waiter.png,category_bonus,category=appetizer;multiplier=2.0,前菜売上×2倍,1
+set_master,セットの達人,https://img.icons8.com/fluency/48/waiter.png,set_bonus,requiredCategories=2;value=50,2種類以上で+50円,1
+fullcourse_chef,フルコースの巨匠,https://img.icons8.com/fluency/48/waiter.png,full_course,requiredCategories=3;value=150,3種類以上で+150円,1

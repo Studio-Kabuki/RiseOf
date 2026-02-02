@@ -3,3 +3,4 @@ export { useRestaurantStore, createOrder } from './restaurantStore';
 export { useMenuStore } from './menuStore';
 export { useShopStore } from './shopStore';
 export { useStaffStore } from './staffStore';
+export { useMenuBoardStore } from './menuBoardStore';
