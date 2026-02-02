@@ -57,10 +57,16 @@ const styles = {
     fontWeight: 'bold' as const,
     color: '#000000',
     marginBottom: '2px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: '1.2',
   },
   menuPrice: {
-    fontSize: '10px',
-    color: '#000000',
+    fontSize: '12px',
+    color: '#006400',
+    fontWeight: 'bold' as const,
     marginBottom: '2px',
   },
   menuTime: {
@@ -156,11 +162,9 @@ function ShopItem({ menu, canBuy, isSoldOut, onPurchase }: ShopItemProps) {
       </div>
       <div style={{
         ...styles.menuPrice,
-        color: '#006400',
-        fontWeight: 'bold',
         opacity: isSoldOut ? 0.5 : 1,
       }}>
-        売値: {menu.price}円
+        +{menu.price}G
       </div>
       {menu.description && (
         <div style={{
