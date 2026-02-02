@@ -43,11 +43,12 @@ export function WindowDialog({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        paddingTop: '20px',
         zIndex,
+        pointerEvents: 'none', // バックドロップはポインターイベントを通過
       }}
     >
       {/* ウィンドウ本体 */}
@@ -62,6 +63,7 @@ export function WindowDialog({
           borderRight: '2px solid #404040',
           boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.4)',
           fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          pointerEvents: 'auto', // ダイアログ本体はポインターイベントを受け取る
         }}
       >
         {/* 内側のボーダー */}
