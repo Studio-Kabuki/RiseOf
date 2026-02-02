@@ -67,10 +67,43 @@ export const STAFF_COOKING_SPEED = 100;
 // 経済・ノルマ設定
 // ------------------------------------------------------------
 
-// 基本家賃（Day1のノルマ）
-export const BASE_RENT = 100;
+// 各日のノルマ（固定値リスト）
+// bairitu.md に基づく。調整する場合はこの配列を編集。
+export const DAILY_QUOTAS = [
+  75,              // #1
+  138,             // #2  (中間)
+  200,             // #3
+  433,             // #4  (中間)
+  666,             // #5
+  1444,            // #6  (中間)
+  2222,            // #7
+  7361,            // #8  (中間)
+  12500,           // #9
+  22917,           // #10 (中間)
+  33333,           // #11
+  50000,           // #12 (中間)
+  66666,           // #13
+  133333,          // #14 (中間)
+  200000,          // #15
+  600000,          // #16 (中間)
+  1000000,         // #17
+  3500000,         // #18 (中間)
+  6000000,         // #19
+  75000000,        // #20 (中間)
+  144000000,       // #21
+  6984000000,      // #22 (中間)
+  13824000000,     // #23
+  1.06e13,         // #24 (中間)
+  2.12e13,         // #25 (21兆)
+  1.12e17,         // #26 (中間)
+  2.04e17,         // #27 (20京)
+  5.52e21,         // #28 (中間)
+  1.08e22,         // #29 (100垓)
+  5.0e22,          // #30
+];
 
-// 家賃の増加指数（毎日この乗数で増加: Day N の家賃 = BASE_RENT * N^RENT_EXPONENT）
+// 後方互換用（非推奨）
+export const BASE_RENT = DAILY_QUOTAS[0];
 export const RENT_EXPONENT = 1.5;
 
 // デフォルト料理価格（CSVで上書き可能）
@@ -125,7 +158,13 @@ export const getStaffCookingPosition = (staffIndex: number) => ({
 
 // 指定日の家賃（ノルマ）を計算
 export const calculateRent = (day: number): number => {
-  return Math.floor(BASE_RENT * Math.pow(day, RENT_EXPONENT));
+  // 配列は0-indexed、dayは1から開始
+  const index = day - 1;
+  if (index < DAILY_QUOTAS.length) {
+    return Math.floor(DAILY_QUOTAS[index]);
+  }
+  // 配列を超えた場合は最後の値を返す
+  return Math.floor(DAILY_QUOTAS[DAILY_QUOTAS.length - 1]);
 };
 
 // ------------------------------------------------------------
