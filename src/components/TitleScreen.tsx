@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { loadMenusFromCSV } from '../data/menuLoader';
 import { loadStaffsFromCSV } from '../data/staffLoader';
-import titleImage from '../../.docs/title.png';
+import titleImage from '../assets/title.png';
 
 interface TitleScreenProps {
   onStart: () => void;

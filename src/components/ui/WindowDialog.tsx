@@ -45,8 +45,7 @@ export function WindowDialog({
         bottom: 0,
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        paddingTop: '20px',
+        alignItems: 'center',
         zIndex,
         pointerEvents: 'none', // バックドロップはポインターイベントを通過
       }}

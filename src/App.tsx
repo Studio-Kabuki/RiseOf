@@ -4,11 +4,10 @@ import { TitleScreen } from './components/TitleScreen';
 import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
 import { GameOverWindow } from './components/GameOverWindow';
-import { ShopWindow } from './components/ShopWindow';
-import { MenuSelectWindow } from './components/MenuSelectWindow';
 import { UpgradeWindow } from './components/UpgradeWindow';
 import { MoneyEffects } from './components/MoneyEffects';
 import { StatusPanel } from './components/StatusPanel';
+import { PreparePhaseScreen } from './components/PreparePhaseScreen';
 import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
 import './App.css';
@@ -33,19 +32,13 @@ function App() {
   const [showGame, setShowGame] = useState(false);
   const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
-  const { gameStarted, reset: resetMenu, startGame, openMenuSelect } = useMenuStore();
-  const { openShop, reset: resetShop } = useShopStore();
+  const { gameStarted, reset: resetMenu, startGame } = useMenuStore();
+  const { reset: resetShop } = useShopStore();
   const { reset: resetStaff } = useStaffStore();
 
   const handleGameStart = () => {
     setShowGame(true);
     startGame();
-    openMenuSelect(); // メニュー選択ウィンドウを開く
-  };
-
-  // 開店ボタン押下時：店を開く（ファンファーレはStatusPanelで処理）
-  const handleOpenStore = () => {
-    useRestaurantStore.getState().openStore();
   };
 
   const handleReset = () => {
@@ -59,12 +52,6 @@ function App() {
 
   return (
     <div className="app" style={{ fontFamily: 'MS Sans Serif, Tahoma, sans-serif' }}>
-      {/* メニュー選択ウィンドウ */}
-      <MenuSelectWindow />
-
-      {/* ショップウィンドウ（店員） */}
-      <ShopWindow />
-
       {/* 1日終了ウィンドウ */}
       <DayEndWindow />
 
@@ -168,56 +155,39 @@ function App() {
             }}
           >
         {showGame ? (
-          <div style={{ position: 'relative' }}>
-            <RestaurantMap />
-            <MoneyEffects />
-            {/* 閉店オーバーレイ - 開店ボタン */}
-            {(!gameStarted || !isOpen) && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Win98LargeButton
-                  onClick={handleOpenStore}
-                  color="#008542"
-                  variant="raised"
-                >
-                  開店する
-                </Win98LargeButton>
-              </div>
-            )}
-            {/* 次の日へオーバーレイ */}
-            {gameStarted && isOpen && canClose && isNormaAchieved() && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Win98LargeButton
-                  onClick={triggerClose}
-                  color="#008000"
-                  variant="inset"
-                >
-                  次の日へ
-                </Win98LargeButton>
-              </div>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* 準備フェーズ: スタッフ雇用・メニュー選択 */}
+            {!isOpen ? (
+              <PreparePhaseScreen />
+            ) : (
+              <>
+                <RestaurantMap />
+                <MoneyEffects />
+                {/* 次の日へオーバーレイ */}
+                {canClose && isNormaAchieved() && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Win98LargeButton
+                      onClick={triggerClose}
+                      color="#008000"
+                      variant="inset"
+                    >
+                      次の日へ
+                    </Win98LargeButton>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -253,13 +223,6 @@ function App() {
               disabled={!gameStarted}
             >
               x{gameSpeed}
-            </WindowButton>
-
-            <WindowButton
-              onClick={openShop}
-              disabled={!gameStarted}
-            >
-              ショップ
             </WindowButton>
 
             <WindowButton onClick={handleReset}>

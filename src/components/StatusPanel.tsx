@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMenuStore } from '../store/menuStore';
 import { useStaffStore } from '../store/staffStore';
 import { useRestaurantStore } from '../store/restaurantStore';
-import { useShopStore } from '../store/shopStore';
 
 // ファンファーレ演出の状態
 type FanfarePhase = 'idle' | 'animating' | 'waiting' | 'complete';
@@ -217,11 +216,44 @@ function EmptyCard({ onClick }: { onClick?: () => void }) {
   );
 }
 
+// 折りたたみボタン
+function CollapseButton({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        width: 16,
+        height: 16,
+        padding: 0,
+        backgroundColor: '#C0C0C0',
+        borderTop: '1px solid #FFFFFF',
+        borderLeft: '1px solid #FFFFFF',
+        borderBottom: '1px solid #808080',
+        borderRight: '1px solid #808080',
+        cursor: 'pointer',
+        fontSize: 10,
+        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {collapsed ? '+' : '−'}
+    </button>
+  );
+}
+
 export function StatusPanel() {
   const { registeredMenus, maxMenuSlots, reorderMenus, removeMenu } = useMenuStore();
   const { hiredStaff, baseBonuses, categoryBonuses, maxStaffSlots, reorderStaff, fireStaff } = useStaffStore();
   const { isOpen } = useRestaurantStore();
-  const { openShop } = useShopStore();
+
+  // 折りたたみ状態
+  const [staffMenuCollapsed, setStaffMenuCollapsed] = useState(false);
 
   const [fanfare, setFanfare] = useState<FanfareState>({
     phase: 'idle',
@@ -253,10 +285,17 @@ export function StatusPanel() {
   // 最新のdragStateをrefで追跡（クロージャ問題対策）
   const dragStateRef = useRef(dragState);
   dragStateRef.current = dragState;
+  // 最新のhiredStaffとregisteredMenusをrefで追跡（クロージャ問題対策）
+  const hiredStaffRef = useRef(hiredStaff);
+  hiredStaffRef.current = hiredStaff;
+  const registeredMenusRef = useRef(registeredMenus);
+  registeredMenusRef.current = registeredMenus;
   // ドラッグ後のクリックを無視するためのフラグ
   const justDraggedRef = useRef(false);
   // ゴミ箱領域のref
   const trashRef = useRef<HTMLDivElement>(null);
+  // 最新のisOverTrash状態を追跡（mouseup時にstateが未更新の問題を解決）
+  const isOverTrashRef = useRef(false);
 
   const timeoutRef = useRef<number | null>(null);
   const prevIsOpen = useRef(isOpen);
@@ -405,7 +444,7 @@ export function StatusPanel() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - dragState.startX;
-      const items = dragState.type === 'staff' ? hiredStaff : registeredMenus;
+      const items = dragState.type === 'staff' ? hiredStaffRef.current : registeredMenusRef.current;
 
       // 移動量からターゲットインデックスを計算
       const moveSteps = Math.round(deltaX / CARD_EFFECTIVE_WIDTH);
@@ -423,6 +462,8 @@ export function StatusPanel() {
           e.clientY <= trashRect.bottom
         );
       }
+      // refを同期的に更新（mouseup時に最新値を取得するため）
+      isOverTrashRef.current = isOverTrash;
 
       setDragState(prev => prev ? {
         ...prev,
@@ -433,7 +474,7 @@ export function StatusPanel() {
       } : null);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (_e: MouseEvent) => {
       // 最新のdragStateをrefから取得（クロージャ問題対策）
       const currentDragState = dragStateRef.current;
       if (!currentDragState) return;
@@ -449,15 +490,18 @@ export function StatusPanel() {
         }, 0);
       }
 
+      // refから最新のisOverTrash状態を取得（タッチデバイスやstate更新タイミングの問題を解決）
+      const isOverTrash = isOverTrashRef.current;
+
       // ゴミ箱にドロップした場合は削除（スタッフは確認ダイアログ付き）
-      if (currentDragState.isOverTrash) {
+      if (isOverTrash) {
         if (currentDragState.type === 'staff') {
-          const staff = hiredStaff[currentDragState.fromIndex];
+          const staff = hiredStaffRef.current[currentDragState.fromIndex];
           if (staff && window.confirm(`本当に${staff.name}を解雇しますか？`)) {
             fireStaff(staff.id);
           }
         } else if (currentDragState.type === 'menu') {
-          const menu = registeredMenus[currentDragState.fromIndex];
+          const menu = registeredMenusRef.current[currentDragState.fromIndex];
           if (menu) {
             removeMenu(menu.id);
           }
@@ -480,7 +524,7 @@ export function StatusPanel() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, hiredStaff, registeredMenus, reorderStaff, reorderMenus, fireStaff, removeMenu]);
+  }, [dragState, reorderStaff, reorderMenus, fireStaff, removeMenu]);
 
   // アイテムの表示順序を計算（ドラッグ中の並び替えプレビュー）
   const getDisplayOrder = useCallback((type: 'staff' | 'menu', originalIndex: number): { displayIndex: number; offsetX: number; offsetY: number } => {
@@ -524,206 +568,229 @@ export function StatusPanel() {
   };
 
   return (
-    <Panel3D
+    <div
       onClick={handlePanelClick}
       style={{
         display: 'flex',
-        alignItems: 'stretch',
-        gap: 12,
-        padding: '8px 12px',
+        flexDirection: 'column',
+        gap: 2,
         margin: '2px 2px 0 2px',
         flexShrink: 0,
       }}
     >
-      {/* 左側: スタッフとメニューの2段 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-        {/* スタッフカード行 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
-            スタッフ
-          </span>
-          <div
-            style={{
-              display: 'flex',
-              paddingRight: CARD_OVERLAP,
-            }}
-          >
-            {hiredStaff.map((staff, index) => {
-              const isGlowing = fanfare.glowingStaffId === staff.id;
-              const isDragging = dragState?.type === 'staff' && dragState.fromIndex === index;
-              const isHovered = activeTooltip?.type === 'staff' && activeTooltip.id === staff.id && !isDragging;
-              const { offsetX, offsetY } = getDisplayOrder('staff', index);
-              return (
+      {/* 編成パネル */}
+      <Panel3D
+        style={{
+          display: 'flex',
+          alignItems: 'stretch',
+          gap: 12,
+          padding: '6px 12px',
+        }}
+      >
+        {/* 左側: スタッフ・メニュー */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+          {/* ヘッダー */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <CollapseButton collapsed={staffMenuCollapsed} onClick={() => setStaffMenuCollapsed(!staffMenuCollapsed)} />
+            <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', width: 28 }}>
+              編成
+            </span>
+          </div>
+
+          {!staffMenuCollapsed && (
+            <>
+              {/* スタッフカード行 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 20 }}>
+                <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
+                  スタッフ
+                </span>
                 <div
-                  key={staff.id}
                   style={{
-                    marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                    zIndex: isDragging ? 200 : isHovered ? 100 : hiredStaff.length - index,
-                    transition: isDragging ? 'none' : 'transform 0.15s ease',
+                    display: 'flex',
+                    paddingRight: CARD_OVERLAP,
                   }}
                 >
-                  <Card
-                    iconUrl={staff.iconUrl}
-                    name={staff.name}
-                    isGlowing={isGlowing}
-                    isHovered={isHovered}
-                    isDragging={isDragging}
-                    isSelected={selectedStaffId === staff.id}
-                    offsetX={offsetX}
-                    offsetY={offsetY}
-                    onMouseDown={handleMouseDown('staff', index)}
-                    onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={() => {
-                      if (!dragState && !justDraggedRef.current) {
-                        setSelectedStaffId(prev => prev === staff.id ? null : staff.id);
-                        setSelectedMenuIndex(null);
-                      }
-                    }}
-                    tooltipContent={
-                      <div>
-                        <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{staff.name}</div>
-                        <div style={{ color: '#006600' }}>{staff.description}</div>
+                  {hiredStaff.map((staff, index) => {
+                    const isGlowing = fanfare.glowingStaffId === staff.id;
+                    const isDragging = dragState?.type === 'staff' && dragState.fromIndex === index;
+                    const isHovered = activeTooltip?.type === 'staff' && activeTooltip.id === staff.id && !isDragging;
+                    const { offsetX, offsetY } = getDisplayOrder('staff', index);
+                    return (
+                      <div
+                        key={staff.id}
+                        style={{
+                          marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
+                          zIndex: isDragging ? 200 : isHovered ? 100 : hiredStaff.length - index,
+                          transition: isDragging ? 'none' : 'transform 0.15s ease',
+                        }}
+                      >
+                        <Card
+                          iconUrl={staff.iconUrl}
+                          name={staff.name}
+                          isGlowing={isGlowing}
+                          isHovered={isHovered}
+                          isDragging={isDragging}
+                          isSelected={selectedStaffId === staff.id}
+                          offsetX={offsetX}
+                          offsetY={offsetY}
+                          onMouseDown={handleMouseDown('staff', index)}
+                          onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
+                          onMouseLeave={() => setActiveTooltip(null)}
+                          onClick={() => {
+                            if (!dragState && !justDraggedRef.current) {
+                              setSelectedStaffId(prev => prev === staff.id ? null : staff.id);
+                              setSelectedMenuIndex(null);
+                            }
+                          }}
+                          tooltipContent={
+                            <div>
+                              <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{staff.name}</div>
+                              <div style={{ color: '#006600' }}>{staff.description}</div>
+                            </div>
+                          }
+                        />
                       </div>
-                    }
-                  />
+                    );
+                  })}
+                  {hiredStaff.length < maxStaffSlots && (
+                    <div style={{ marginLeft: hiredStaff.length === 0 ? 0 : -CARD_OVERLAP }}>
+                      <EmptyCard />
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-            {hiredStaff.length < maxStaffSlots && (
-              <div style={{ marginLeft: hiredStaff.length === 0 ? 0 : -CARD_OVERLAP }}>
-                <EmptyCard onClick={openShop} />
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* メニューカード行 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
-            メニュー
-          </span>
-          <div
-            style={{
-              display: 'flex',
-              paddingRight: CARD_OVERLAP,
-            }}
-          >
-          {Array.from({ length: maxMenuSlots }).map((_, index) => {
-            const menu = registeredMenus[index];
-            const isGlowing = fanfare.glowingMenuIndex === index;
-            const isDragging = dragState?.type === 'menu' && dragState.fromIndex === index;
-            const isHovered = activeTooltip?.type === 'menu' && activeTooltip.index === index && !isDragging;
-            const displayPrice = getMenuDisplayPrice(index);
-            const { offsetX, offsetY } = menu ? getDisplayOrder('menu', index) : { offsetX: 0, offsetY: 0 };
+              {/* メニューカード行 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 20 }}>
+                <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
+                  メニュー
+                </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    paddingRight: CARD_OVERLAP,
+                  }}
+                >
+                  {Array.from({ length: maxMenuSlots }).map((_, index) => {
+                    const menu = registeredMenus[index];
+                    const isGlowing = fanfare.glowingMenuIndex === index;
+                    const isDragging = dragState?.type === 'menu' && dragState.fromIndex === index;
+                    const isHovered = activeTooltip?.type === 'menu' && activeTooltip.index === index && !isDragging;
+                    const displayPrice = getMenuDisplayPrice(index);
+                    const { offsetX, offsetY } = menu ? getDisplayOrder('menu', index) : { offsetX: 0, offsetY: 0 };
 
-            return (
-              <div
-                key={menu?.id ?? `empty-${index}`}
-                style={{
-                  marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                  zIndex: isDragging ? 200 : isHovered ? 100 : maxMenuSlots - index,
-                  transition: isDragging ? 'none' : 'transform 0.15s ease',
-                }}
-              >
-                {menu ? (
-                  <Card
-                    iconUrl={menu.iconUrl}
-                    name={menu.name}
-                    subText={`${displayPrice}円`}
-                    isGlowing={isGlowing}
-                    isHovered={isHovered}
-                    isDragging={isDragging}
-                    isSelected={selectedMenuIndex === index}
-                    offsetX={offsetX}
-                    offsetY={offsetY}
-                    onMouseDown={handleMouseDown('menu', index)}
-                    onMouseEnter={() => !dragState && setActiveTooltip({ type: 'menu', id: menu.id, index })}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={() => {
-                      if (!dragState && !justDraggedRef.current) {
-                        setSelectedMenuIndex(prev => prev === index ? null : index);
-                        setSelectedStaffId(null);
-                      }
-                    }}
-                    tooltipContent={
-                      <div>
-                        <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{menu.name}</div>
-                        <div>基本価格: {menu.price}円</div>
-                        {displayPrice !== menu.price && (
-                          <div style={{ color: '#006600', fontWeight: 'bold' }}>
-                            ボーナス後: {displayPrice}円
-                          </div>
-                        )}
-                        {menu.description && (
-                          <div style={{ marginTop: 4, color: '#666666' }}>
-                            {menu.description.split('\\n').map((line, i) => (
-                              <div key={i}>{line}</div>
-                            ))}
-                          </div>
+                    return (
+                      <div
+                        key={menu?.id ?? `empty-${index}`}
+                        style={{
+                          marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
+                          zIndex: isDragging ? 200 : isHovered ? 100 : maxMenuSlots - index,
+                          transition: isDragging ? 'none' : 'transform 0.15s ease',
+                        }}
+                      >
+                        {menu ? (
+                          <Card
+                            iconUrl={menu.iconUrl}
+                            name={menu.name}
+                            subText={`${displayPrice}円`}
+                            isGlowing={isGlowing}
+                            isHovered={isHovered}
+                            isDragging={isDragging}
+                            isSelected={selectedMenuIndex === index}
+                            offsetX={offsetX}
+                            offsetY={offsetY}
+                            onMouseDown={handleMouseDown('menu', index)}
+                            onMouseEnter={() => !dragState && setActiveTooltip({ type: 'menu', id: menu.id, index })}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                            onClick={() => {
+                              if (!dragState && !justDraggedRef.current) {
+                                setSelectedMenuIndex(prev => prev === index ? null : index);
+                                setSelectedStaffId(null);
+                              }
+                            }}
+                            tooltipContent={
+                              <div>
+                                <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{menu.name}</div>
+                                <div>基本価格: {menu.price}円</div>
+                                {displayPrice !== menu.price && (
+                                  <div style={{ color: '#006600', fontWeight: 'bold' }}>
+                                    ボーナス後: {displayPrice}円
+                                  </div>
+                                )}
+                                {menu.description && (
+                                  <div style={{ marginTop: 4, color: '#666666' }}>
+                                    {menu.description.split('\\n').map((line, i) => (
+                                      <div key={i}>{line}</div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            }
+                          />
+                        ) : (
+                          <EmptyCard />
                         )}
                       </div>
-                    }
-                  />
-                ) : (
-                  <EmptyCard onClick={openShop} />
-                )}
+                    );
+                  })}
+                </div>
               </div>
-            );
-          })}
+            </>
+          )}
+        </div>
+
+        {/* 右側: ゴミ箱と客単価（編成パネル内、折りたたみ時は非表示） */}
+        {!staffMenuCollapsed && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+            {/* ゴミ箱 */}
+            <div
+              ref={trashRef}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: CARD_SIZE + 16,
+                height: CARD_SIZE + 16,
+                backgroundColor: dragState?.isOverTrash ? '#FFCCCC' : '#E8E8E8',
+                borderTop: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
+                borderLeft: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
+                borderBottom: dragState?.isOverTrash ? '2px solid #990000' : '1px solid #FFFFFF',
+                borderRight: dragState?.isOverTrash ? '2px solid #990000' : '1px solid #FFFFFF',
+                transition: 'background-color 0.15s ease, border-color 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>🗑️</span>
+              <span style={{
+                fontSize: 9,
+                color: dragState?.isOverTrash ? '#CC0000' : '#808080',
+                fontWeight: dragState?.isOverTrash ? 'bold' : 'normal',
+              }}>
+                {dragState?.type === 'staff' ? '解雇' : '削除'}
+              </span>
+            </div>
+
+            {/* 客単価 */}
+            <Panel3D
+              inset
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px 8px',
+                backgroundColor: '#FFFFF0',
+                flex: 1,
+              }}
+            >
+              <span style={{ fontSize: 9, color: '#404040', marginBottom: 2 }}>客単価</span>
+              <span style={{ fontSize: 16, fontWeight: 'bold', color: '#008000' }}>
+                {calculateTotal()}円
+              </span>
+            </Panel3D>
           </div>
-        </div>
-      </div>
-
-      {/* 右側: ゴミ箱と客単価 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
-        {/* ゴミ箱（常時表示） */}
-        <div
-          ref={trashRef}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: CARD_SIZE + 16,
-            height: CARD_SIZE + 16,
-            backgroundColor: dragState?.isOverTrash ? '#FFCCCC' : '#E8E8E8',
-            borderTop: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
-            borderLeft: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
-            borderBottom: dragState?.isOverTrash ? '2px solid #990000' : '1px solid #FFFFFF',
-            borderRight: dragState?.isOverTrash ? '2px solid #990000' : '1px solid #FFFFFF',
-            transition: 'background-color 0.15s ease, border-color 0.15s ease',
-          }}
-        >
-          <span style={{ fontSize: 20 }}>🗑️</span>
-          <span style={{
-            fontSize: 9,
-            color: dragState?.isOverTrash ? '#CC0000' : '#808080',
-            fontWeight: dragState?.isOverTrash ? 'bold' : 'normal',
-          }}>
-            {dragState?.type === 'staff' ? '解雇' : '削除'}
-          </span>
-        </div>
-
-        {/* 客単価 */}
-        <Panel3D
-          inset
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px 8px',
-            backgroundColor: '#FFFFF0',
-            flex: 1,
-          }}
-        >
-          <span style={{ fontSize: 9, color: '#404040', marginBottom: 2 }}>客単価</span>
-          <span style={{ fontSize: 16, fontWeight: 'bold', color: '#008000' }}>
-            {calculateTotal()}円
-          </span>
-        </Panel3D>
-      </div>
+        )}
+      </Panel3D>
 
       {/* CSSアニメーション */}
       <style>{`
@@ -732,6 +799,6 @@ export function StatusPanel() {
           50% { filter: brightness(1.3); box-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
         }
       `}</style>
-    </Panel3D>
+    </div>
   );
 }
