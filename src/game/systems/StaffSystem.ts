@@ -2,6 +2,7 @@ import type { GameSystem } from '../GameEngine';
 import type { Staff, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore } from '../../store/restaurantStore';
+import { useStaffStore } from '../../store/staffStore';
 import { getStaffIdlePosition } from '../../constants/game';
 
 /**
@@ -19,11 +20,37 @@ import { getStaffIdlePosition } from '../../constants/game';
  * - serving: 料理を渡し中
  */
 export class StaffSystem implements GameSystem {
+  // 現在のフレームで既に担当が決まった注文IDを追跡
+  private claimedOrderIds: Set<string> = new Set();
+
+  /**
+   * 注文が他のスタッフに既に担当されているかチェック
+   */
+  private isOrderClaimed(orderId: string, allStaff: Staff[], currentStaffId: string): boolean {
+    // 現在のフレームで既にclaimされている
+    if (this.claimedOrderIds.has(orderId)) {
+      return true;
+    }
+    // 他のスタッフが既にこの注文を担当している
+    return allStaff.some(
+      (s) => s.id !== currentStaffId && s.currentOrderId === orderId
+    );
+  }
+
+  /**
+   * 注文を担当としてマーク
+   */
+  private claimOrder(orderId: string): void {
+    this.claimedOrderIds.add(orderId);
+  }
   update(deltaTime: number): void {
     const { staff, updateStaff, customers, updateCustomer } =
       useEntityStore.getState();
     const { restaurant, removeReadyFood, removeOrder, isClosing } =
       useRestaurantStore.getState();
+
+    // フレーム開始時にクリア
+    this.claimedOrderIds.clear();
 
     for (let i = 0; i < staff.length; i++) {
       const s = staff[i];
@@ -44,7 +71,7 @@ export class StaffSystem implements GameSystem {
 
       switch (s.state) {
         case 'idle':
-          this.handleIdle(s, i, idlePosition, restaurant.kitchen, deltaTime, updateStaff);
+          this.handleIdle(s, i, idlePosition, restaurant.kitchen, deltaTime, updateStaff, staff);
           break;
 
         case 'moving_to_kitchen':
@@ -80,7 +107,8 @@ export class StaffSystem implements GameSystem {
             customers,
             updateCustomer,
             removeOrder,
-            updateStaff
+            updateStaff,
+            staff
           );
           break;
       }
@@ -100,7 +128,8 @@ export class StaffSystem implements GameSystem {
     idlePosition: Position,
     kitchen: { readyFoods: string[]; orders: Order[]; position: Position },
     deltaTime: number,
-    updateStaff: (id: string, updates: Partial<Staff>) => void
+    updateStaff: (id: string, updates: Partial<Staff>) => void,
+    allStaff: Staff[]
   ): void {
     const { isClosing } = useRestaurantStore.getState();
 
@@ -118,12 +147,15 @@ export class StaffSystem implements GameSystem {
     // 閉店処理中は新しい仕事を始めない
     if (isClosing) return;
 
-    // 優先順位1: 完成した料理があれば配膳へ
-    if (kitchen.readyFoods.length > 0) {
-      const orderId = kitchen.readyFoods[0];
-      const order = useRestaurantStore.getState().getOrder(orderId);
+    // 優先順位1: 完成した料理があれば配膳へ（他のスタッフが担当していないものを探す）
+    for (const orderId of kitchen.readyFoods) {
+      if (this.isOrderClaimed(orderId, allStaff, staff.id)) {
+        continue; // 既に他のスタッフが担当している
+      }
 
+      const order = useRestaurantStore.getState().getOrder(orderId);
       if (order) {
+        this.claimOrder(orderId);
         updateStaff(staff.id, {
           state: 'moving_to_kitchen',
           carryingFood: order.food,
@@ -136,12 +168,14 @@ export class StaffSystem implements GameSystem {
       }
     }
 
-    // 優先順位2: 未調理の注文があれば調理へ
+    // 優先順位2: 未調理の注文があれば調理へ（他のスタッフが担当していないものを探す）
     const pendingOrder = kitchen.orders.find(
-      (order) => order.state === 'pending'
+      (order) => order.state === 'pending' && !this.isOrderClaimed(order.id, allStaff, staff.id)
     );
 
     if (pendingOrder) {
+      // 注文を担当としてマーク
+      this.claimOrder(pendingOrder.id);
       // 注文を調理中状態に変更
       useRestaurantStore.getState().updateOrder(pendingOrder.id, { state: 'cooking' });
 
@@ -224,7 +258,30 @@ export class StaffSystem implements GameSystem {
     }
 
     // 調理時間を取得（料理のcookingTimeを使用、デフォルト3秒）
-    const cookingTime = staff.currentFood.cookingTime || 3;
+    // 店員の能力による調理時間短縮を適用
+    const { cookingSpeedMultiplier } = useStaffStore.getState();
+    const baseCookingTime = staff.currentFood.cookingTime ?? 3;
+
+    // 調理時間が0なら即座に完了
+    if (baseCookingTime === 0) {
+      // 調理完了
+      updateOrder(staff.currentOrderId, {
+        state: 'ready',
+        cookingProgress: 1,
+      });
+      addReadyFood(staff.currentOrderId);
+
+      // 料理を持って配膳へ
+      updateStaff(staff.id, {
+        state: 'picking_food',
+        carryingFood: staff.currentFood,
+        currentFood: null,
+        cookingProgress: 0,
+      });
+      return;
+    }
+
+    const cookingTime = baseCookingTime * cookingSpeedMultiplier;
     const newProgress = staff.cookingProgress + deltaTime / cookingTime;
 
     if (newProgress >= 1) {
@@ -327,7 +384,8 @@ export class StaffSystem implements GameSystem {
     customers: ReturnType<typeof useEntityStore.getState>['customers'],
     updateCustomer: (id: string, updates: Partial<import('../../types').Customer>) => void,
     removeOrder: (orderId: string) => void,
-    updateStaff: (id: string, updates: Partial<Staff>) => void
+    updateStaff: (id: string, updates: Partial<Staff>) => void,
+    allStaff: Staff[]
   ): void {
     const { isClosing, restaurant } = useRestaurantStore.getState();
 
@@ -359,12 +417,15 @@ export class StaffSystem implements GameSystem {
     }
 
     // 次の仕事を探す
-    // 優先順位1: 完成した料理があればキッチンへ（配膳）
-    if (restaurant.kitchen.readyFoods.length > 0) {
-      const nextOrderId = restaurant.kitchen.readyFoods[0];
-      const nextOrder = useRestaurantStore.getState().getOrder(nextOrderId);
+    // 優先順位1: 完成した料理があればキッチンへ（配膳）- 他のスタッフが担当していないもの
+    for (const nextOrderId of restaurant.kitchen.readyFoods) {
+      if (this.isOrderClaimed(nextOrderId, allStaff, staff.id)) {
+        continue;
+      }
 
+      const nextOrder = useRestaurantStore.getState().getOrder(nextOrderId);
       if (nextOrder) {
+        this.claimOrder(nextOrderId);
         updateStaff(staff.id, {
           state: 'moving_to_kitchen',
           carryingFood: nextOrder.food,
@@ -377,12 +438,13 @@ export class StaffSystem implements GameSystem {
       }
     }
 
-    // 優先順位2: 未調理の注文があればキッチンへ（調理）
+    // 優先順位2: 未調理の注文があればキッチンへ（調理）- 他のスタッフが担当していないもの
     const pendingOrder = restaurant.kitchen.orders.find(
-      (order) => order.state === 'pending'
+      (order) => order.state === 'pending' && !this.isOrderClaimed(order.id, allStaff, staff.id)
     );
 
     if (pendingOrder) {
+      this.claimOrder(pendingOrder.id);
       useRestaurantStore.getState().updateOrder(pendingOrder.id, { state: 'cooking' });
 
       updateStaff(staff.id, {

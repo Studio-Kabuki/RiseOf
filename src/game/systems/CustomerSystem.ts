@@ -3,8 +3,29 @@ import type { Customer, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore, createOrder, createComboFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
+import { useStaffStore } from '../../store/staffStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
 import { calculateSales } from '../../utils/salesCalculator';
+
+/**
+ * 登録メニューから食事時間ボーナスを計算
+ * @returns 食事時間の調整値（秒）。正なら時間延長、負なら時間短縮
+ */
+function calculateEatingTimeBonus(): number {
+  const { registeredMenus } = useMenuStore.getState();
+  let totalBonus = 0;
+
+  for (const menu of registeredMenus) {
+    if (menu.ability === 'eating_time' && menu.params?.eatingTimeBonus !== undefined) {
+      const bonus = typeof menu.params.eatingTimeBonus === 'number'
+        ? menu.params.eatingTimeBonus
+        : 0;
+      totalBonus += bonus;
+    }
+  }
+
+  return totalBonus;
+}
 
 export class CustomerSystem implements GameSystem {
   private orderingTimers: Map<string, number> = new Map();
@@ -113,7 +134,11 @@ export class CustomerSystem implements GameSystem {
   ): void {
     this.spawnTimer += deltaTime;
 
-    if (this.spawnTimer >= CUSTOMER_SPAWN_DELAY) {
+    // 店員の能力による来店スピードアップを適用
+    const { customerSpeedMultiplier } = useStaffStore.getState();
+    const adjustedSpawnDelay = CUSTOMER_SPAWN_DELAY / customerSpeedMultiplier;
+
+    if (this.spawnTimer >= adjustedSpawnDelay) {
       this.spawnTimer = 0;
 
       const availableSeats = getAvailableSeats();
@@ -255,7 +280,12 @@ export class CustomerSystem implements GameSystem {
     deltaTime: number,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
-    const progress = customer.eatingProgress + deltaTime / EATING_TIME;
+    // 食事時間ボーナスを適用（最低0.5秒）
+    const eatingTimeBonus = calculateEatingTimeBonus();
+    const { customerSpeedMultiplier } = useStaffStore.getState();
+    // customerSpeedMultiplierで食事時間も短縮
+    const adjustedEatingTime = Math.max(0.5, (EATING_TIME + eatingTimeBonus) / customerSpeedMultiplier);
+    const progress = customer.eatingProgress + deltaTime / adjustedEatingTime;
 
     if (progress >= 1) {
       updateCustomer(customer.id, {
@@ -276,7 +306,7 @@ export class CustomerSystem implements GameSystem {
   ): void {
     // 売上計算（特殊能力を考慮）
     const { registeredMenus } = useMenuStore.getState();
-    const { todayCustomerCount, addLit } = useRestaurantStore.getState();
+    const { todayCustomerCount, addLit, addMoneyEffect } = useRestaurantStore.getState();
 
     // 今回の会計は todayCustomerCount + 1 人目（recordCustomerServed前なので）
     const salesContext = {
@@ -289,6 +319,9 @@ export class CustomerSystem implements GameSystem {
     // お金を追加
     addMoney(salesResult.totalGold);
     recordCustomerServed(salesResult.totalGold);
+
+    // お金エフェクトを表示
+    addMoneyEffect(salesResult.totalGold, customer.position.x, customer.position.y);
 
     // LIT獲得（辛辛チキンなど）
     if (salesResult.earnedLit > 0) {
@@ -341,7 +374,9 @@ export class CustomerSystem implements GameSystem {
       return true;
     }
 
-    const moveDistance = customer.speed * deltaTime;
+    // customerSpeedMultiplierで移動速度も上げる
+    const { customerSpeedMultiplier } = useStaffStore.getState();
+    const moveDistance = customer.speed * deltaTime * customerSpeedMultiplier;
     const ratio = Math.min(moveDistance / distance, 1);
 
     updateCustomer(customer.id, {

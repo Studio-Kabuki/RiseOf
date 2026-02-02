@@ -27,7 +27,9 @@ export function RestaurantMap() {
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
   const staffSpritesRef = useRef<Map<string, StaffSprite>>(new Map());
+  const tableSpritesRef = useRef<Map<string, TableSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
+  const staticContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
   // カメラ制御用
@@ -108,6 +110,31 @@ export function RestaurantMap() {
     if (kitchenSpriteRef.current) {
       kitchenSpriteRef.current.update(currentRestaurant.kitchen);
     }
+
+    // テーブルスプライト更新（動的追加対応）
+    const staticContainer = staticContainerRef.current;
+    const tableSprites = tableSpritesRef.current;
+    if (staticContainer) {
+      const tableIds = new Set(currentRestaurant.tables.map((t) => t.id));
+
+      // 不要なテーブルスプライトを削除
+      for (const [id, sprite] of tableSprites) {
+        if (!tableIds.has(id)) {
+          staticContainer.removeChild(sprite);
+          sprite.destroy();
+          tableSprites.delete(id);
+        }
+      }
+
+      // 新しいテーブルスプライトを追加
+      for (const table of currentRestaurant.tables) {
+        if (!tableSprites.has(table.id)) {
+          const tableSprite = new TableSprite(table);
+          staticContainer.addChild(tableSprite);
+          tableSprites.set(table.id, tableSprite);
+        }
+      }
+    }
   };
 
   // Pixi.js初期化
@@ -165,15 +192,17 @@ export function RestaurantMap() {
         // 静的オブジェクト用コンテナ
         const staticContainer = new Container();
         worldContainer.addChild(staticContainer);
+        staticContainerRef.current = staticContainer;
 
         // 入口
         const entrance = new EntranceSprite(restaurant.entrancePosition);
         staticContainer.addChild(entrance);
 
-        // テーブル
+        // テーブル（初期テーブルをマップに登録）
         for (const table of restaurant.tables) {
           const tableSprite = new TableSprite(table);
           staticContainer.addChild(tableSprite);
+          tableSpritesRef.current.set(table.id, tableSprite);
         }
 
         // キッチン
@@ -376,7 +405,9 @@ export function RestaurantMap() {
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();
+      tableSpritesRef.current.clear();
       dynamicContainerRef.current = null;
+      staticContainerRef.current = null;
       kitchenSpriteRef.current = null;
       worldContainerRef.current = null;
       // カメラ状態をリセット

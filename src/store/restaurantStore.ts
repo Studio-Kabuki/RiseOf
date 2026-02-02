@@ -6,11 +6,12 @@ import {
   TABLE_POSITION,
   KITCHEN_POSITION,
   SEAT_OFFSETS,
+  ADDITIONAL_TABLE_POSITIONS,
   DAY_DURATION,
-  BASE_RENT,
-  RENT_EXPONENT,
   INITIAL_LIT,
   ICONS,
+  calculateRent,
+  SEAT_COUNT,
 } from '../constants/game';
 import { useEntityStore } from './entityStore';
 
@@ -37,7 +38,7 @@ const createInitialRestaurant = (): Restaurant => ({
 });
 
 // ゲーム速度の選択肢
-const SPEED_OPTIONS = [1, 2, 5, 10];
+const SPEED_OPTIONS = [1, 2, 10, 50];
 
 interface RestaurantState {
   restaurant: Restaurant;
@@ -64,6 +65,14 @@ interface RestaurantState {
   canClose: boolean; // 閉店可能かどうか（時間終了かつノルマ達成）
   showDayEnd: boolean; // 営業終了ダイアログを表示するか
   isClosing: boolean; // 閉店処理中（時間終了、店員が戻る中）
+
+  // 店拡張機能
+  showUpgrade: boolean; // アップグレードウィンドウを表示するか
+  lastUpgradeDay: number; // 最後にアップグレードした日
+  seatCount: number; // 現在の座席数
+
+  // お金エフェクト
+  moneyEffects: Array<{ id: string; amount: number; x: number; y: number; createdAt: number }>;
 
   // Day getters
   getDayProgress: () => number; // 0-1で1日の進捗
@@ -113,23 +122,22 @@ interface RestaurantState {
   // Speed
   cycleSpeed: () => void;
 
+  // 店拡張アクション
+  openUpgrade: () => void;
+  closeUpgrade: () => void;
+  canShowUpgrade: () => boolean; // アップグレード可能かどうか
+  addSeat: () => void; // 座席を1つ追加
+
+  // エフェクトアクション
+  addMoneyEffect: (amount: number, x: number, y: number) => void;
+  removeMoneyEffect: (id: string) => void;
+  clearMoneyEffects: () => void;
+
   // Reset
   reset: () => void;
 }
 
 let orderIdCounter = 0;
-
-// 指定した日の家賃を計算する関数
-// Day1: BASE_RENT, Day2: BASE_RENT^1.5, Day3: (BASE_RENT^1.5)^1.5 ...
-const calculateRentForDay = (day: number): number => {
-  if (day <= 1) return BASE_RENT;
-  // 前日の家賃を1.5乗する
-  let rent = BASE_RENT;
-  for (let i = 1; i < day; i++) {
-    rent = Math.pow(rent, RENT_EXPONENT);
-  }
-  return Math.floor(rent);
-};
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   restaurant: createInitialRestaurant(),
@@ -150,12 +158,20 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   todayRevenue: 0,
 
   // 家賃（ノルマ）システム
-  currentRent: BASE_RENT, // 初日の家賃
+  currentRent: calculateRent(1), // 初日の家賃
   isGameOver: false,
   rentPaid: false,
   canClose: false,
   showDayEnd: false,
   isClosing: false,
+
+  // 店拡張機能
+  showUpgrade: false,
+  lastUpgradeDay: 0,
+  seatCount: SEAT_COUNT,
+
+  // お金エフェクト
+  moneyEffects: [],
 
   getDayProgress: () => {
     const { dayTimeElapsed } = get();
@@ -172,8 +188,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     set({ isOpen: true });
   },
 
-  // 指定した日の家賃を計算
-  calculateRent: (day: number) => calculateRentForDay(day),
+  // 指定した日の家賃を計算（constants/game.tsのDAILY_QUOTASを使用）
+  calculateRent: (day: number) => calculateRent(day),
 
   // 家賃を支払う
   payRent: () => {
@@ -403,8 +419,18 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         const normaAchieved =
           state.money + pendingRevenue >= state.currentRent;
 
+        // デバッグログ
+        console.log('[ノルマ判定]', {
+          money: state.money,
+          pendingRevenue,
+          total: state.money + pendingRevenue,
+          currentRent: state.currentRent,
+          normaAchieved,
+        });
+
         if (!normaAchieved) {
           // ノルマ未達成 → 即座にゲームオーバー
+          console.log('[ゲームオーバー] ノルマ未達成');
           return {
             gameTime: state.gameTime + deltaTime,
             dayTimeElapsed: newDayTimeElapsed,
@@ -414,6 +440,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
           };
         } else {
           // ノルマ達成 → 閉店ボタン表示可能に（時間は停止しない）
+          console.log('[ノルマ達成] 閉店可能');
           return {
             gameTime: state.gameTime + deltaTime,
             dayTimeElapsed: newDayTimeElapsed,
@@ -444,7 +471,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         isPaused: false,
         isOpen: false, // 次の日は閉店状態からスタート
         // 次の日の家賃を設定
-        currentRent: calculateRentForDay(nextDay),
+        currentRent: calculateRent(nextDay),
         rentPaid: false,
         canClose: false,
         showDayEnd: false,
@@ -461,6 +488,79 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       const nextIndex = (currentIndex + 1) % SPEED_OPTIONS.length;
       return { gameSpeed: SPEED_OPTIONS[nextIndex] };
     }),
+
+  // 店拡張アクション
+  openUpgrade: () => {
+    set({ showUpgrade: true });
+  },
+
+  closeUpgrade: () => {
+    const { currentDay } = get();
+    set({ showUpgrade: false, lastUpgradeDay: currentDay });
+  },
+
+  canShowUpgrade: () => {
+    const { currentDay, lastUpgradeDay } = get();
+    // 3日ごとにアップグレード可能（Day 3, 6, 9...）
+    return currentDay >= 3 && currentDay % 3 === 0 && lastUpgradeDay !== currentDay;
+  },
+
+  addSeat: () => {
+    set((state) => {
+      // テーブル数から追加位置を決定（最大4回まで）
+      const currentTableCount = state.restaurant.tables.length;
+      const additionalIndex = currentTableCount - 1; // 初期テーブルを除いたインデックス
+
+      if (additionalIndex >= ADDITIONAL_TABLE_POSITIONS.length) {
+        // 追加可能なテーブルがもうない
+        return {};
+      }
+
+      const newTablePosition = ADDITIONAL_TABLE_POSITIONS[additionalIndex];
+      const currentSeatCount = state.seatCount;
+
+      // 新しいテーブルを作成（4席）
+      const newTable = {
+        id: `table-${currentTableCount + 1}`,
+        position: { ...newTablePosition },
+        seats: SEAT_OFFSETS.map((offset, i) => ({
+          id: `seat-${currentSeatCount + i}`,
+          localPosition: offset,
+          customerId: null,
+        })),
+      };
+
+      return {
+        seatCount: currentSeatCount + 4,
+        restaurant: {
+          ...state.restaurant,
+          tables: [...state.restaurant.tables, newTable],
+        },
+      };
+    });
+  },
+
+  // エフェクトアクション
+  addMoneyEffect: (amount: number, x: number, y: number) => {
+    const id = `effect-${Date.now()}-${Math.random()}`;
+    set((state) => ({
+      moneyEffects: [...state.moneyEffects, { id, amount, x, y, createdAt: Date.now() }],
+    }));
+    // 1.5秒後に自動削除
+    setTimeout(() => {
+      get().removeMoneyEffect(id);
+    }, 1500);
+  },
+
+  removeMoneyEffect: (id: string) => {
+    set((state) => ({
+      moneyEffects: state.moneyEffects.filter((e) => e.id !== id),
+    }));
+  },
+
+  clearMoneyEffects: () => {
+    set({ moneyEffects: [] });
+  },
 
   reset: () => {
     orderIdCounter = 0;
@@ -480,12 +580,18 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       todayCustomerCount: 0,
       todayRevenue: 0,
       // 家賃システムのリセット
-      currentRent: BASE_RENT,
+      currentRent: calculateRent(1),
       isGameOver: false,
       rentPaid: false,
       canClose: false,
       showDayEnd: false,
       isClosing: false,
+      // 店拡張のリセット
+      showUpgrade: false,
+      lastUpgradeDay: 0,
+      seatCount: SEAT_COUNT,
+      // エフェクトのリセット
+      moneyEffects: [],
     });
   },
 }));
@@ -506,8 +612,8 @@ export const createFood = (menu: MenuItem): Food => ({
 // お客さん1人につき全メニュー合計金額を売上とし、調理は1回
 export const createComboFood = (menus: MenuItem[]): Food => {
   const totalPrice = menus.reduce((sum, menu) => sum + menu.price, 0);
-  // 調理時間は登録メニューの中で最長のものを使用
-  const maxCookingTime = Math.max(...menus.map((menu) => menu.cookingTime), 0);
+  // 調理時間は登録メニューの合計
+  const totalCookingTime = menus.reduce((sum, menu) => sum + menu.cookingTime, 0);
 
   return {
     id: `food-${++foodIdCounter}`,
@@ -515,7 +621,7 @@ export const createComboFood = (menus: MenuItem[]): Food => {
     name: '定食',
     iconUrl: ICONS.meal,
     price: totalPrice,
-    cookingTime: maxCookingTime,
+    cookingTime: totalCookingTime,
   };
 };
 

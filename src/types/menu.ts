@@ -3,7 +3,8 @@ export type AbilityType =
   | 'none'           // 能力なし（ミラノ風ドリア）
   | 'pizza_synergy'  // ピザカテゴリのシナジー（ソーセージピッツァ）
   | 'per_customer'   // 提供人数ごとに増加（イタリアンプリン）
-  | 'lit_chance';    // 確率でLIT獲得（辛辛チキン）
+  | 'lit_chance'     // 確率でLIT獲得（辛辛チキン）
+  | 'eating_time';   // 食事時間を変更（エビのサラダ、デキャンタ大）
 
 // メニューパラメータの型定義（可変長引数用）
 export type MenuParams = Record<string, string | number>;

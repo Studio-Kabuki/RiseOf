@@ -6,3 +6,8 @@ export type { Order, OrderState, Kitchen } from './kitchen';
 export type { Restaurant } from './restaurant';
 export type { MenuItem, MenuState, AbilityType, MenuParams } from './menu';
 export type { Food } from './food';
+export type {
+  StaffDefinition,
+  StaffAbilityType,
+  StaffParams,
+} from './staffDefinition';

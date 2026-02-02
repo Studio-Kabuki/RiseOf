@@ -17,6 +17,14 @@ export const KITCHEN_POSITION = { x: 250, y: 60 };
 export const REGISTER_POSITION = { x: 150, y: 140 }; // 店員の定位置
 export const REGISTER_SPACING = 50; // 店員間のスペース
 export const TABLE_POSITION = { x: 320, y: 280 }; // 座席の中心位置
+
+// 追加テーブルの位置（最大4回分のアップグレード）
+export const ADDITIONAL_TABLE_POSITIONS = [
+  { x: 180, y: 280 }, // 2つ目: 初期テーブルの左
+  { x: 320, y: 400 }, // 3つ目: 初期テーブルの下
+  { x: 180, y: 400 }, // 4つ目: 左下
+  { x: 450, y: 280 }, // 5つ目: 初期テーブルの右
+];
 export const ENTRANCE_POSITION = { x: 100, y: 450 };
 export const EXIT_POSITION = { x: 100, y: 450 };
 
@@ -45,10 +53,10 @@ export const CUSTOMER_SPAWN_DELAY = 3;
 export const ORDERING_DELAY = 0.5;
 
 // 食事時間（秒）- UPGRADEABLE: 椅子のアップグレードで短縮可能?
-export const EATING_TIME = 10;
+export const EATING_TIME = 2;
 
-// デフォルト調理時間（秒）- 料理ごとに個別設定も可能
-export const COOKING_TIME = 2;
+// デフォルト調理時間（秒）
+export const COOKING_TIME = 0;
 
 // ------------------------------------------------------------
 // 移動速度設定 (px/秒)
@@ -58,7 +66,7 @@ export const COOKING_TIME = 2;
 export const CUSTOMER_SPEED = 80;
 
 // 店員の移動速度 - UPGRADEABLE: 店員のレベルアップで向上
-export const STAFF_SPEED = 120;
+export const STAFF_SPEED = 200;
 
 // スタッフの調理時移動速度（キッチン内での動き）
 export const STAFF_COOKING_SPEED = 100;
@@ -70,12 +78,10 @@ export const STAFF_COOKING_SPEED = 100;
 // 各日のノルマ（固定値リスト）
 // bairitu.md に基づく。調整する場合はこの配列を編集。
 export const DAILY_QUOTAS = [
-  75,              // #1
-  138,             // #2  (中間)
-  200,             // #3
-  433,             // #4  (中間)
+  30,              // #1
+  90,             // #2  (中間)
+  300,             // #4  (中間)
   666,             // #5
-  1444,            // #6  (中間)
   2222,            // #7
   7361,            // #8  (中間)
   12500,           // #9
@@ -114,10 +120,10 @@ export const DEFAULT_FOOD_PRICE = 30;
 // ------------------------------------------------------------
 
 // 初期LIT
-export const INITIAL_LIT = 2;
+export const INITIAL_LIT = 1;
 
 // 1日終了時に獲得するLIT
-export const LIT_PER_DAY = 5;
+export const LIT_PER_DAY = 1;
 
 // ------------------------------------------------------------
 // ショップ設定
@@ -133,11 +139,14 @@ export const SHOP_LINEUP_SIZE = 3;
 // メニュー登録枠の上限 - UPGRADEABLE: メニュースロット拡張で増加
 export const MAX_MENU_SLOTS = 4;
 
+// 店員スロット数の初期値 - アップグレードで増加
+export const MAX_STAFF_SLOTS = 2;
+
 // 座席数 - UPGRADEABLE: テーブル購入で増加
 export const SEAT_COUNT = 4;
 
-// 店員数 - UPGRADEABLE: 店員雇用で増加
-export const INITIAL_STAFF_COUNT = 1;
+// 初期店員数（0からスタート、ショップで購入）
+export const INITIAL_STAFF_COUNT = 0;
 
 
 // ------------------------------------------------------------

@@ -1,4 +1,5 @@
 import type { MenuItem } from '../types';
+import { useStaffStore } from '../store/staffStore';
 
 /**
  * 売上計算のコンテキスト情報
@@ -8,6 +9,46 @@ export interface SalesContext {
   registeredMenus: MenuItem[];
   /** 今日の提供人数（1から開始） */
   todayCustomerCount: number;
+}
+
+/**
+ * スタッフ能力ボーナスを取得
+ */
+function getStaffBonuses(): {
+  categoryBonuses: Record<string, number>;
+  baseBonuses: Record<string, number>;
+  categoryCountBonuses: { requiredCategories: number; value: number }[];
+} {
+  const { categoryBonuses, baseBonuses, categoryCountBonuses } = useStaffStore.getState();
+  return { categoryBonuses, baseBonuses, categoryCountBonuses };
+}
+
+/**
+ * 登録メニューのユニークカテゴリ数を取得
+ */
+function getUniqueCategoryCount(menus: MenuItem[]): number {
+  const categories = new Set<string>();
+  for (const menu of menus) {
+    const category = menu.params?.category;
+    if (typeof category === 'string' && category) {
+      categories.add(category);
+    }
+  }
+  return categories.size;
+}
+
+/**
+ * カテゴリ数ボーナスを計算（set_bonus, full_course）
+ */
+function calculateCategoryCountBonus(uniqueCategoryCount: number): number {
+  const { categoryCountBonuses } = getStaffBonuses();
+  let bonus = 0;
+  for (const { requiredCategories, value } of categoryCountBonuses) {
+    if (uniqueCategoryCount >= requiredCategories) {
+      bonus += value;
+    }
+  }
+  return bonus;
 }
 
 /**
@@ -33,6 +74,7 @@ function countMenusByCategory(menus: MenuItem[], category: string): number {
 
 /**
  * 単一メニューの売上を計算
+ * スタッフ能力ボーナスも適用
  */
 function calculateMenuGold(menu: MenuItem, context: SalesContext): number {
   const { registeredMenus, todayCustomerCount } = context;
@@ -45,33 +87,62 @@ function calculateMenuGold(menu: MenuItem, context: SalesContext): number {
   const perCustomer = typeof params.perCustomer === 'number' ? params.perCustomer : 0;
   const category = typeof params.category === 'string' ? params.category : '';
 
+  // 基本売上を計算
+  let baseGold = 0;
+
   switch (ability) {
     case 'none':
       // 固定金額
-      return value;
+      baseGold = value;
+      break;
 
     case 'pizza_synergy': {
       // ピザシナジー: (ベース + 増加係数 * 他のピザ数) * 個数
       // 他のピザ数 = 同カテゴリのメニュー数 - 1（自分自身を除く）
       const pizzaCount = countMenusByCategory(registeredMenus, category);
       const otherPizzaCount = Math.max(0, pizzaCount - 1);
-      return value + multiplier * otherPizzaCount;
+      baseGold = value + multiplier * otherPizzaCount;
+      break;
     }
 
     case 'per_customer': {
       // 顧客数ボーナス: value + (今日の提供人数 - 1) * perCustomer
       const bonusCustomers = Math.max(0, todayCustomerCount - 1);
-      return value + bonusCustomers * perCustomer;
+      baseGold = value + bonusCustomers * perCustomer;
+      break;
     }
 
     case 'lit_chance':
       // LIT獲得能力の場合も固定金額
-      return value;
+      baseGold = value;
+      break;
+
+    case 'eating_time':
+      // 食事時間変更能力の場合も固定金額（効果はCustomerSystemで適用）
+      baseGold = value;
+      break;
 
     default:
       // 不明な能力の場合はvalueを返す
-      return value;
+      baseGold = value;
+      break;
   }
+
+  // スタッフ能力ボーナスを適用
+  if (category) {
+    const { categoryBonuses, baseBonuses } = getStaffBonuses();
+
+    // ベースボーナス適用（加算型: 0なら変化なし、2.0なら+200%）
+    const baseBonusValue = baseBonuses[category] || 0;
+    const baseBonusMultiplier = 1 + baseBonusValue;
+
+    // カテゴリボーナス適用（乗算型: 1なら変化なし、1.25なら×1.25）
+    const categoryMultiplier = categoryBonuses[category] || 1;
+
+    baseGold = baseGold * baseBonusMultiplier * categoryMultiplier;
+  }
+
+  return baseGold;
 }
 
 /**
@@ -110,6 +181,10 @@ export function calculateSales(
     earnedLit += calculateMenuLit(menu);
   }
 
+  // カテゴリ数ボーナスを適用（set_bonus, full_course）
+  const uniqueCategoryCount = getUniqueCategoryCount(context.registeredMenus);
+  totalGold += calculateCategoryCountBonus(uniqueCategoryCount);
+
   return {
     totalGold,
     earnedLit,
@@ -129,6 +204,10 @@ export function calculateSalesPreview(
   for (const menu of menus) {
     totalGold += calculateMenuGold(menu, context);
   }
+
+  // カテゴリ数ボーナスを適用（set_bonus, full_course）
+  const uniqueCategoryCount = getUniqueCategoryCount(context.registeredMenus);
+  totalGold += calculateCategoryCountBonus(uniqueCategoryCount);
 
   return totalGold;
 }

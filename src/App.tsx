@@ -5,8 +5,11 @@ import { DayClock } from './components/DayClock';
 import { DayEndWindow } from './components/DayEndWindow';
 import { GameOverWindow } from './components/GameOverWindow';
 import { ShopWindow } from './components/ShopWindow';
+import { MenuSelectWindow } from './components/MenuSelectWindow';
+import { UpgradeWindow } from './components/UpgradeWindow';
+import { MoneyEffects } from './components/MoneyEffects';
 import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
-import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore } from './store';
+import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
 import './App.css';
 
 // Windows 98 スタイルの3Dパネル
@@ -29,13 +32,14 @@ function App() {
   const [showGame, setShowGame] = useState(false);
   const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
-  const { registeredMenus, gameStarted, reset: resetMenu, startGame, maxMenuSlots } = useMenuStore();
+  const { registeredMenus, gameStarted, reset: resetMenu, startGame, maxMenuSlots, openMenuSelect } = useMenuStore();
   const { openShop, reset: resetShop } = useShopStore();
+  const { reset: resetStaff } = useStaffStore();
 
   const handleGameStart = () => {
     setShowGame(true);
     startGame();
-    openShop();
+    openMenuSelect(); // メニュー選択ウィンドウを開く
   };
 
   const handleReset = () => {
@@ -43,12 +47,16 @@ function App() {
     resetEntities();
     resetMenu();
     resetShop();
+    resetStaff();
     setShowGame(false);
   };
 
   return (
     <div className="app" style={{ fontFamily: 'MS Sans Serif, Tahoma, sans-serif' }}>
-      {/* ショップウィンドウ */}
+      {/* メニュー選択ウィンドウ */}
+      <MenuSelectWindow />
+
+      {/* ショップウィンドウ（店員） */}
       <ShopWindow />
 
       {/* 1日終了ウィンドウ */}
@@ -56,6 +64,9 @@ function App() {
 
       {/* ゲームオーバーウィンドウ */}
       <GameOverWindow onRestart={handleReset} />
+
+      {/* 店舗拡張ウィンドウ */}
+      <UpgradeWindow />
 
       {/* 全体をウィンドウ風に */}
       <div
@@ -151,8 +162,9 @@ function App() {
             }}
           >
         {showGame ? (
-          <>
+          <div style={{ position: 'relative' }}>
             <RestaurantMap />
+            <MoneyEffects />
             {/* 閉店オーバーレイ - 開店ボタン */}
             {(!gameStarted || !isOpen) && (
               <div
@@ -201,7 +213,7 @@ function App() {
                 </Win98LargeButton>
               </div>
             )}
-          </>
+          </div>
         ) : (
           <TitleScreen onStart={handleGameStart} />
         )}

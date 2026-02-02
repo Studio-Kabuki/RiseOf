@@ -1,0 +1,10 @@
+id,name,iconUrl,ability,params,description,cost
+string,string,string,string,string,string,number
+pizzaiolo,ピッツァイオーロ,https://img.icons8.com/fluency/48/waiter.png,category_bonus,category=pizza;multiplier=2.0,ピザ売上×2倍,1
+tatsuya,タツヤ・カミゴエ,https://img.icons8.com/fluency/48/waiter.png,category_bonus,category=dessert;multiplier=2.5,デザート売上×2.5倍,1
+speedster,俊足のケン,https://img.icons8.com/fluency/48/waiter.png,customer_speed,value=2.0,来店スピード×2倍,1
+sommelier,ソムリエール,https://img.icons8.com/fluency/48/waiter.png,category_bonus,category=drink;multiplier=3.0,ドリンク売上×3倍,1
+newbie,新人バイト,https://img.icons8.com/fluency/48/waiter.png,customer_speed,value=1.5,来店スピード×1.5倍,1
+appetizer_master,前菜の鬼,https://img.icons8.com/fluency/48/waiter.png,category_bonus,category=appetizer;multiplier=2.0,前菜売上×2倍,1
+set_master,セットの達人,https://img.icons8.com/fluency/48/waiter.png,set_bonus,requiredCategories=2;value=50,2種類以上で+50円,1
+fullcourse_chef,フルコースの巨匠,https://img.icons8.com/fluency/48/waiter.png,full_course,requiredCategories=3;value=150,3種類以上で+150円,1

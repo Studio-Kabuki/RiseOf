@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useRestaurantStore, useShopStore } from '../store';
+import { useRestaurantStore, useShopStore, useMenuStore } from '../store';
 import { useEntityStore } from '../store/entityStore';
 import { LIT_PER_DAY } from '../constants/game';
 import { WindowDialog, WindowButton } from './ui';
@@ -20,9 +20,11 @@ export const DayEndWindow = () => {
     addMoney,
     addLit,
     lit,
+    openUpgrade,
   } = useRestaurantStore();
   const { customers, clearAllCustomers, resetAllStaff } = useEntityStore();
-  const { refreshLineup, openShop } = useShopStore();
+  const { refreshLineup } = useShopStore();
+  const { openMenuSelect } = useMenuStore();
 
   // 家賃支払い状態の管理
   const [hasAttemptedPayment, setHasAttemptedPayment] = useState(false);
@@ -119,9 +121,18 @@ export const DayEndWindow = () => {
       } else {
         // アニメーション完了後、次の日へ
         setTimeout(() => {
+          // 3日ごとにアップグレードウィンドウを表示
+          const nextDay = currentDay + 1;
+          const shouldShowUpgrade = nextDay >= 3 && nextDay % 3 === 0;
+
           refreshLineup();
           startNextDay();
-          openShop(); // ショップウィンドウを自動で開く
+
+          if (shouldShowUpgrade) {
+            openUpgrade();
+          } else {
+            openMenuSelect(); // メニュー選択ウィンドウを開く
+          }
         }, 300);
       }
     };

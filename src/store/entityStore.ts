@@ -28,6 +28,8 @@ interface EntityState {
 
   // Staff actions（調理・配膳両方対応）
   addStaff: () => string;
+  removeLastStaff: () => void; // 最後のスタッフを削除
+  setStaffCount: (count: number) => void; // スタッフ数を設定（増減に対応）
   updateStaff: (id: string, updates: Partial<Staff>) => void;
   getStaff: (id: string) => Staff | undefined;
   resetAllStaff: () => void; // 全スタッフを定位置に戻す
@@ -155,6 +157,29 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       staff: [...state.staff, staff],
     }));
     return id;
+  },
+
+  removeLastStaff: () => {
+    set((state) => ({
+      staff: state.staff.slice(0, -1),
+    }));
+  },
+
+  setStaffCount: (count: number) => {
+    const { staff, addStaff, removeLastStaff } = get();
+    const currentCount = staff.length;
+
+    if (count > currentCount) {
+      // スタッフを追加
+      for (let i = 0; i < count - currentCount; i++) {
+        addStaff();
+      }
+    } else if (count < currentCount) {
+      // スタッフを削除
+      for (let i = 0; i < currentCount - count; i++) {
+        removeLastStaff();
+      }
+    }
   },
 
   updateStaff: (id, updates) =>
