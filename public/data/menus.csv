@@ -1,8 +1,7 @@
-id,name,price,cookingTime,iconUrl
-string,string,number,number,string
-doria,ミラノ風ドリア,300,3,https://img.icons8.com/fluency/48/rice-bowl.png
-spaghetti,ミートソース,400,4,https://img.icons8.com/fluency/48/spaghetti.png
-pizza,マルゲリータ,400,4,https://img.icons8.com/fluency/48/pizza.png
-salad,グリーンサラダ,200,1,https://img.icons8.com/fluency/48/salad.png
-tiramisu,ティラミス,350,2,https://img.icons8.com/fluency/48/cake.png
-risotto,チーズリゾット,450,5,https://img.icons8.com/fluency/48/porridge.png
+id,name,price,cookingTime,iconUrl,ability,params
+string,string,number,number,string,string,string
+doria,ミラノ風ドリア,30,0,https://img.icons8.com/fluency/48/rice-bowl.png,none,value=30
+sausage_pizza,ソーセージピッツァ,10,0,https://img.icons8.com/fluency/48/pizza.png,pizza_synergy,value=10;multiplier=20;category=pizza
+pizza,マルゲリータ,25,0,https://img.icons8.com/fluency/48/pizza.png,none,value=25;category=pizza
+pudding,イタリアンプリン,10,0,https://img.icons8.com/fluency/48/pudding.png,per_customer,value=10;perCustomer=1
+chicken,辛辛チキン,10,0,https://img.icons8.com/fluency/48/fried-chicken.png,lit_chance,value=10;litChance=0.05

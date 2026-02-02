@@ -52,6 +52,10 @@ interface RestaurantState {
   // 営業状態
   isOpen: boolean; // 店が営業中か（開店ボタンで true に）
 
+  // 今日の統計データ
+  todayCustomerCount: number; // 今日さばいたお客さんの数
+  todayRevenue: number; // 今日の売上
+
   // 家賃（ノルマ）システム
   currentRent: number; // 現在の日の家賃
   isGameOver: boolean; // ゲームオーバー状態
@@ -92,6 +96,9 @@ interface RestaurantState {
 
   // Money
   addMoney: (amount: number) => void;
+
+  // 統計更新（お客さん会計時に呼ぶ）
+  recordCustomerServed: (revenue: number) => void;
 
   // LIT
   addLit: (amount: number) => void;
@@ -136,6 +143,10 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   // 営業状態
   isOpen: false, // 開店ボタンを押すまで閉店
+
+  // 今日の統計データ
+  todayCustomerCount: 0,
+  todayRevenue: 0,
 
   // 家賃（ノルマ）システム
   currentRent: BASE_RENT, // 初日の家賃
@@ -337,6 +348,12 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       money: state.money + amount,
     })),
 
+  recordCustomerServed: (revenue) =>
+    set((state) => ({
+      todayCustomerCount: state.todayCustomerCount + 1,
+      todayRevenue: state.todayRevenue + revenue,
+    })),
+
   addLit: (amount) =>
     set((state) => ({
       lit: state.lit + amount,
@@ -412,6 +429,9 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         canClose: false,
         showDayEnd: false,
         isClosing: false,
+        // 統計データをリセット
+        todayCustomerCount: 0,
+        todayRevenue: 0,
       };
     }),
 
@@ -436,6 +456,9 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       isPaused: true, // リセット後は一時停止状態
       gameSpeed: 1,
       isOpen: false, // 閉店状態からスタート
+      // 統計データのリセット
+      todayCustomerCount: 0,
+      todayRevenue: 0,
       // 家賃システムのリセット
       currentRent: BASE_RENT,
       isGameOver: false,

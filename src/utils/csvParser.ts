@@ -7,7 +7,39 @@
  * 3行目以降: データ
  */
 
-export type CSVType = 'string' | 'number' | 'boolean';
+export type CSVType = 'string' | 'number' | 'boolean' | 'params';
+
+/**
+ * paramsフィールドをパースしてオブジェクトに変換
+ * フォーマット: "key1=value1;key2=value2"
+ * 例: "value=10;multiplier=20" → { value: 10, multiplier: 20 }
+ */
+export function parseParams(paramsStr: string): Record<string, string | number> {
+  if (!paramsStr || paramsStr.trim() === '') {
+    return {};
+  }
+
+  const result: Record<string, string | number> = {};
+  const pairs = paramsStr.split(';');
+
+  for (const pair of pairs) {
+    const [key, value] = pair.split('=');
+    if (key && value !== undefined) {
+      const trimmedKey = key.trim();
+      const trimmedValue = value.trim();
+
+      // 数値に変換できる場合は数値として保存
+      const numValue = parseFloat(trimmedValue);
+      if (!isNaN(numValue) && trimmedValue !== '') {
+        result[trimmedKey] = numValue;
+      } else {
+        result[trimmedKey] = trimmedValue;
+      }
+    }
+  }
+
+  return result;
+}
 
 /**
  * CSVの1行をパースして配列に変換（RFC 4180準拠）
@@ -91,6 +123,9 @@ export function parseTypedCSV<T>(text: string): T[] {
           break;
         case 'boolean':
           obj[key] = value.toLowerCase() === 'true' || value === '1';
+          break;
+        case 'params':
+          obj[key] = parseParams(value);
           break;
         default:
           obj[key] = value;

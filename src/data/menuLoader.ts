@@ -1,4 +1,5 @@
-import type { MenuItem } from '../types';
+import type { MenuItem, MenuParams, AbilityType } from '../types';
+import { parseParams } from '../utils/csvParser';
 
 // CSVをパースしてMenuItemの配列を返す
 function parseMenuCSV(csvText: string): MenuItem[] {
@@ -13,12 +14,22 @@ function parseMenuCSV(csvText: string): MenuItem[] {
     const values = lines[i].split(',');
     if (values.length < headers.length) continue;
 
+    // ability列（6番目の列、インデックス5）
+    const abilityValue = values[5]?.trim() || 'none';
+    const ability = abilityValue as AbilityType;
+
+    // params列をパース（7番目の列、インデックス6）
+    const paramsValue = values[6]?.trim() || '';
+    const params: MenuParams = parseParams(paramsValue);
+
     const menu: MenuItem = {
       id: values[0],
       name: values[1],
       price: parseInt(values[2], 10),
       cookingTime: parseInt(values[3], 10),
       iconUrl: values[4],
+      ability: ability !== 'none' ? ability : undefined,
+      params: Object.keys(params).length > 0 ? params : undefined,
     };
     menus.push(menu);
   }

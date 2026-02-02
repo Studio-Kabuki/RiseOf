@@ -32,6 +32,8 @@ export const DayClock = () => {
     currentRent,
     isNormaAchieved,
     lit,
+    todayCustomerCount,
+    todayRevenue,
   } = useRestaurantStore();
   const progress = getDayProgress();
   const normaAchieved = isNormaAchieved();
@@ -116,15 +118,15 @@ export const DayClock = () => {
         </div>
       </div>
 
-      {/* ノルマゲージ */}
+      {/* ノルマゲージと統計 */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '2px',
+          gap: '4px',
         }}
       >
-        {/* ラベル */}
+        {/* 売上目標ラベル */}
         <div style={{ fontSize: '10px', color: '#000000', fontWeight: 'bold' }}>
           売上目標
         </div>
@@ -178,6 +180,24 @@ export const DayClock = () => {
             {money}円 / {currentRent}円
           </div>
         </Panel3D>
+        {/* 今日の統計 */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            fontSize: '10px',
+            color: '#000000',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>👤</span>
+            <span style={{ fontWeight: 'bold' }}>{todayCustomerCount}人</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>💰</span>
+            <span style={{ fontWeight: 'bold' }}>{todayRevenue}円</span>
+          </div>
+        </div>
       </div>
 
       {/* LIT表示 */}

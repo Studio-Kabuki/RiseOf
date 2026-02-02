@@ -4,6 +4,7 @@ import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore, createOrder, createComboFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
+import { calculateSales } from '../../utils/salesCalculator';
 
 export class CustomerSystem implements GameSystem {
   private orderingTimers: Map<string, number> = new Map();
@@ -12,7 +13,7 @@ export class CustomerSystem implements GameSystem {
   update(deltaTime: number): void {
     const { customers, updateCustomer, removeCustomer, waitingQueue, promoteWaitingCustomer, addWaitingCustomer, addCustomer } =
       useEntityStore.getState();
-    const { getSeatPosition, addOrder, freeSeat, addMoney, getAvailableSeats, assignSeat, isClosing, isOpen } =
+    const { getSeatPosition, addOrder, freeSeat, addMoney, recordCustomerServed, getAvailableSeats, assignSeat, isClosing, isOpen } =
       useRestaurantStore.getState();
     const { gameStarted } = useMenuStore.getState();
 
@@ -31,10 +32,23 @@ export class CustomerSystem implements GameSystem {
     for (const customer of customers) {
       // 閉店処理中：全員即座に帰宅させる
       if (isClosing && customer.state !== 'leaving') {
-        // 食事中・支払い中の場合はお金を払う
+        // 食事中・支払い中の場合はお金を払う（特殊能力を考慮した売上計算）
         if (customer.state === 'eating' || customer.state === 'paying') {
-          const price = customer.orderedFood?.price || 0;
-          addMoney(price);
+          const { registeredMenus } = useMenuStore.getState();
+          const { todayCustomerCount, addLit } = useRestaurantStore.getState();
+
+          const salesContext = {
+            registeredMenus,
+            todayCustomerCount: todayCustomerCount + 1,
+          };
+
+          const salesResult = calculateSales(registeredMenus, salesContext);
+          addMoney(salesResult.totalGold);
+          recordCustomerServed(salesResult.totalGold);
+
+          if (salesResult.earnedLit > 0) {
+            addLit(salesResult.earnedLit);
+          }
         }
         // 座席を解放
         if (customer.assignedSeatId) {
@@ -77,7 +91,7 @@ export class CustomerSystem implements GameSystem {
           break;
 
         case 'paying':
-          this.handlePaying(customer, freeSeat, addMoney, updateCustomer);
+          this.handlePaying(customer, freeSeat, addMoney, recordCustomerServed, updateCustomer);
           break;
 
         case 'leaving':
@@ -257,11 +271,29 @@ export class CustomerSystem implements GameSystem {
     customer: Customer,
     freeSeat: (seatId: string) => void,
     addMoney: (amount: number) => void,
+    recordCustomerServed: (revenue: number) => void,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
-    // お金を追加（料理の価格）
-    const price = customer.orderedFood?.price || 0;
-    addMoney(price);
+    // 売上計算（特殊能力を考慮）
+    const { registeredMenus } = useMenuStore.getState();
+    const { todayCustomerCount, addLit } = useRestaurantStore.getState();
+
+    // 今回の会計は todayCustomerCount + 1 人目（recordCustomerServed前なので）
+    const salesContext = {
+      registeredMenus,
+      todayCustomerCount: todayCustomerCount + 1,
+    };
+
+    const salesResult = calculateSales(registeredMenus, salesContext);
+
+    // お金を追加
+    addMoney(salesResult.totalGold);
+    recordCustomerServed(salesResult.totalGold);
+
+    // LIT獲得（辛辛チキンなど）
+    if (salesResult.earnedLit > 0) {
+      addLit(salesResult.earnedLit);
+    }
 
     // 座席を開放
     if (customer.assignedSeatId) {
