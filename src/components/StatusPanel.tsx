@@ -21,10 +21,12 @@ const FANFARE_GLOW_DURATION = 500;
 const FANFARE_STEP_DELAY = 200;
 const CARD_SIZE = 52; // カードサイズ
 const CARD_OVERLAP = 12; // 重なり幅
+const CARD_EFFECTIVE_WIDTH = CARD_SIZE - CARD_OVERLAP; // ドラッグ時の実効幅
 
 // Windows 98 スタイルの3Dパネル
-const Panel3D = ({ children, inset = false, style = {} }: { children: React.ReactNode; inset?: boolean; style?: React.CSSProperties }) => (
+const Panel3D = ({ children, inset = false, style = {}, onClick }: { children: React.ReactNode; inset?: boolean; style?: React.CSSProperties; onClick?: () => void }) => (
   <div
+    onClick={onClick}
     style={{
       backgroundColor: '#C0C0C0',
       borderTop: inset ? '1px solid #808080' : '1px solid #FFFFFF',
@@ -38,6 +40,38 @@ const Panel3D = ({ children, inset = false, style = {} }: { children: React.Reac
   </div>
 );
 
+// Windows 98風ツールチップ
+interface TooltipProps {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}
+
+function Win98Tooltip({ children, style }: TooltipProps) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: '100%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        marginBottom: 8,
+        backgroundColor: '#FFFFCC',
+        border: '1px solid #000000',
+        padding: '6px 8px',
+        fontSize: 11,
+        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        whiteSpace: 'nowrap',
+        zIndex: 1000,
+        boxShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+        color: '#000000',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // カード型表示コンポーネント
 interface CardProps {
   iconUrl: string;
@@ -46,15 +80,15 @@ interface CardProps {
   isGlowing?: boolean;
   isHovered?: boolean;
   isDragging?: boolean;
+  isSelected?: boolean;
   zIndex?: number;
+  offsetX?: number; // ドラッグ中のスライドオフセット
   style?: React.CSSProperties;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent) => void;
-  draggable?: boolean;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  tooltipContent?: React.ReactNode;
 }
 
 function Card({
@@ -64,23 +98,29 @@ function Card({
   isGlowing,
   isHovered,
   isDragging,
+  isSelected,
   zIndex = 1,
+  offsetX = 0,
   style,
   onClick,
   onMouseEnter,
   onMouseLeave,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  draggable,
+  onMouseDown,
+  tooltipContent,
 }: CardProps) {
+  // スライドアニメーション用のtransform
+  const slideTransform = offsetX !== 0 ? `translateX(${offsetX}px)` : '';
+  const dragTransform = isDragging ? 'scale(1.1)' : '';
+  const hoverTransform = isHovered && !isDragging ? 'translateY(-4px) scale(1.05)' : '';
+  const combinedTransform = [slideTransform, dragTransform, hoverTransform].filter(Boolean).join(' ') || 'none';
+
   return (
     <div
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onClick={onClick}
+      onMouseDown={onMouseDown}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
@@ -95,20 +135,26 @@ function Card({
         borderLeft: isGlowing ? '2px solid #FFD700' : '2px solid #FFFFFF',
         borderBottom: isGlowing ? '2px solid #B8860B' : '2px solid #808080',
         borderRight: isGlowing ? '2px solid #B8860B' : '2px solid #808080',
-        cursor: draggable ? 'grab' : 'pointer',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        transform: isHovered ? 'translateY(-4px) scale(1.05)' : isDragging ? 'scale(0.95)' : 'none',
-        boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : isDragging ? '0 2px 4px rgba(0,0,0,0.2)' : '1px 1px 2px rgba(0,0,0,0.2)',
-        zIndex: isHovered ? 100 : zIndex,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        transition: isDragging ? 'none' : 'transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease',
+        transform: combinedTransform,
+        boxShadow: isDragging ? '0 8px 16px rgba(0,0,0,0.4)' : isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
+        zIndex: isDragging ? 200 : isHovered ? 100 : zIndex,
         animation: isGlowing ? 'cardGlow 0.5s ease-in-out' : undefined,
         position: 'relative',
+        userSelect: 'none',
+        touchAction: 'none',
         ...style,
       }}
     >
+      {/* ホバー時またはタップ選択時のツールチップ（ドラッグ中は非表示） */}
+      {(isHovered || isSelected) && !isDragging && tooltipContent && (
+        <Win98Tooltip>{tooltipContent}</Win98Tooltip>
+      )}
       <img
         src={iconUrl}
         alt={name}
-        style={{ width: 32, height: 32, marginBottom: 2 }}
+        style={{ width: 32, height: 32, marginBottom: 2, pointerEvents: 'none' }}
         draggable={false}
       />
       <div
@@ -121,6 +167,7 @@ function Card({
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          pointerEvents: 'none',
         }}
       >
         {name}
@@ -133,6 +180,7 @@ function Card({
             fontWeight: 'bold',
             textAlign: 'center',
             fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+            pointerEvents: 'none',
           }}
         >
           {subText}
@@ -183,10 +231,22 @@ export function StatusPanel() {
     glowingMenuIndex: null,
   });
 
-  const [hoveredStaffId, setHoveredStaffId] = useState<string | null>(null);
-  const [hoveredMenuIndex, setHoveredMenuIndex] = useState<number | null>(null);
-  const [draggedStaffIndex, setDraggedStaffIndex] = useState<number | null>(null);
-  const [draggedMenuIndex, setDraggedMenuIndex] = useState<number | null>(null);
+  // ツールチップは同時に1つだけ表示
+  const [activeTooltip, setActiveTooltip] = useState<{ type: 'staff' | 'menu'; id: string; index: number } | null>(null);
+  // タップ用の選択状態（スマホ対応）
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [selectedMenuIndex, setSelectedMenuIndex] = useState<number | null>(null);
+
+  // ドラッグ状態管理
+  const [dragState, setDragState] = useState<{
+    type: 'staff' | 'menu' | null;
+    fromIndex: number;
+    currentIndex: number; // ドラッグ中の現在位置（並び替え後）
+    startX: number;
+    currentX: number;
+  } | null>(null);
+  // ドラッグ後のクリックを無視するためのフラグ
+  const justDraggedRef = useRef(false);
 
   const timeoutRef = useRef<number | null>(null);
   const prevIsOpen = useRef(isOpen);
@@ -314,46 +374,107 @@ export function StatusPanel() {
     return price;
   }, [fanfare.phase, fanfare.menuBonuses, registeredMenus, baseBonuses, categoryBonuses]);
 
-  // スタッフドラッグ＆ドロップ
-  const handleStaffDragStart = (index: number) => (e: React.DragEvent) => {
-    setDraggedStaffIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleStaffDragOver = (e: React.DragEvent) => {
+  // マウスイベントベースのドラッグ＆ドロップ
+  const handleMouseDown = useCallback((type: 'staff' | 'menu', index: number) => (e: React.MouseEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+    setDragState({
+      type,
+      fromIndex: index,
+      currentIndex: index,
+      startX: e.clientX,
+      currentX: e.clientX,
+    });
+  }, []);
 
-  const handleStaffDrop = (targetIndex: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    if (draggedStaffIndex !== null && draggedStaffIndex !== targetIndex && reorderStaff) {
-      reorderStaff(draggedStaffIndex, targetIndex);
+  // ドラッグ中のマウス移動とマウスアップを処理
+  useEffect(() => {
+    if (!dragState) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - dragState.startX;
+      const items = dragState.type === 'staff' ? hiredStaff : registeredMenus;
+
+      // 移動量からターゲットインデックスを計算
+      const moveSteps = Math.round(deltaX / CARD_EFFECTIVE_WIDTH);
+      let newIndex = dragState.fromIndex + moveSteps;
+      newIndex = Math.max(0, Math.min(items.length - 1, newIndex));
+
+      setDragState(prev => prev ? {
+        ...prev,
+        currentIndex: newIndex,
+        currentX: e.clientX,
+      } : null);
+    };
+
+    const handleMouseUp = () => {
+      // ドラッグが発生した場合（少しでも移動した場合）、直後のクリックを無視
+      const wasDragged = Math.abs(dragState.currentX - dragState.startX) > 5;
+      if (wasDragged) {
+        justDraggedRef.current = true;
+        // 次のイベントループでリセット
+        setTimeout(() => {
+          justDraggedRef.current = false;
+        }, 0);
+      }
+
+      if (dragState.fromIndex !== dragState.currentIndex) {
+        if (dragState.type === 'staff' && reorderStaff) {
+          reorderStaff(dragState.fromIndex, dragState.currentIndex);
+        } else if (dragState.type === 'menu' && reorderMenus) {
+          reorderMenus(dragState.fromIndex, dragState.currentIndex);
+        }
+      }
+      setDragState(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragState, hiredStaff, registeredMenus, reorderStaff, reorderMenus]);
+
+  // アイテムの表示順序を計算（ドラッグ中の並び替えプレビュー）
+  const getDisplayOrder = useCallback((type: 'staff' | 'menu', originalIndex: number): { displayIndex: number; offsetX: number } => {
+    if (!dragState || dragState.type !== type) {
+      return { displayIndex: originalIndex, offsetX: 0 };
     }
-    setDraggedStaffIndex(null);
-  };
 
-  // メニュードラッグ＆ドロップ
-  const handleMenuDragStart = (index: number) => (e: React.DragEvent) => {
-    setDraggedMenuIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+    const { fromIndex, currentIndex } = dragState;
 
-  const handleMenuDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleMenuDrop = (targetIndex: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    if (draggedMenuIndex !== null && draggedMenuIndex !== targetIndex && reorderMenus) {
-      reorderMenus(draggedMenuIndex, targetIndex);
+    if (originalIndex === fromIndex) {
+      // ドラッグ中のアイテム：マウスに追従
+      const deltaX = dragState.currentX - dragState.startX;
+      return { displayIndex: originalIndex, offsetX: deltaX };
     }
-    setDraggedMenuIndex(null);
+
+    // 他のアイテム：スライドして場所を空ける
+    if (fromIndex < currentIndex) {
+      // 右に移動中
+      if (originalIndex > fromIndex && originalIndex <= currentIndex) {
+        return { displayIndex: originalIndex, offsetX: -CARD_EFFECTIVE_WIDTH };
+      }
+    } else if (fromIndex > currentIndex) {
+      // 左に移動中
+      if (originalIndex >= currentIndex && originalIndex < fromIndex) {
+        return { displayIndex: originalIndex, offsetX: CARD_EFFECTIVE_WIDTH };
+      }
+    }
+
+    return { displayIndex: originalIndex, offsetX: 0 };
+  }, [dragState]);
+
+  // パネルクリックで選択解除
+  const handlePanelClick = () => {
+    setSelectedStaffId(null);
+    setSelectedMenuIndex(null);
   };
 
   return (
     <Panel3D
+      onClick={handlePanelClick}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -377,14 +498,16 @@ export function StatusPanel() {
         >
           {hiredStaff.map((staff, index) => {
             const isGlowing = fanfare.glowingStaffId === staff.id;
-            const isHovered = hoveredStaffId === staff.id;
-            const isDragging = draggedStaffIndex === index;
+            const isDragging = dragState?.type === 'staff' && dragState.fromIndex === index;
+            const isHovered = activeTooltip?.type === 'staff' && activeTooltip.id === staff.id && !isDragging;
+            const { offsetX } = getDisplayOrder('staff', index);
             return (
               <div
                 key={staff.id}
                 style={{
                   marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                  zIndex: isHovered ? 100 : hiredStaff.length - index,
+                  zIndex: isDragging ? 200 : isHovered ? 100 : hiredStaff.length - index,
+                  transition: isDragging ? 'none' : 'transform 0.15s ease',
                 }}
               >
                 <Card
@@ -393,12 +516,23 @@ export function StatusPanel() {
                   isGlowing={isGlowing}
                   isHovered={isHovered}
                   isDragging={isDragging}
-                  draggable
-                  onDragStart={handleStaffDragStart(index)}
-                  onDragOver={handleStaffDragOver}
-                  onDrop={handleStaffDrop(index)}
-                  onMouseEnter={() => setHoveredStaffId(staff.id)}
-                  onMouseLeave={() => setHoveredStaffId(null)}
+                  isSelected={selectedStaffId === staff.id}
+                  offsetX={offsetX}
+                  onMouseDown={handleMouseDown('staff', index)}
+                  onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  onClick={() => {
+                    if (!dragState && !justDraggedRef.current) {
+                      setSelectedStaffId(prev => prev === staff.id ? null : staff.id);
+                      setSelectedMenuIndex(null);
+                    }
+                  }}
+                  tooltipContent={
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{staff.name}</div>
+                      <div style={{ color: '#006600' }}>{staff.description}</div>
+                    </div>
+                  }
                 />
               </div>
             );
@@ -428,16 +562,18 @@ export function StatusPanel() {
           {Array.from({ length: maxMenuSlots }).map((_, index) => {
             const menu = registeredMenus[index];
             const isGlowing = fanfare.glowingMenuIndex === index;
-            const isHovered = hoveredMenuIndex === index;
-            const isDragging = draggedMenuIndex === index;
+            const isDragging = dragState?.type === 'menu' && dragState.fromIndex === index;
+            const isHovered = activeTooltip?.type === 'menu' && activeTooltip.index === index && !isDragging;
             const displayPrice = getMenuDisplayPrice(index);
+            const { offsetX } = menu ? getDisplayOrder('menu', index) : { offsetX: 0 };
 
             return (
               <div
                 key={menu?.id ?? `empty-${index}`}
                 style={{
                   marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                  zIndex: isHovered ? 100 : maxMenuSlots - index,
+                  zIndex: isDragging ? 200 : isHovered ? 100 : maxMenuSlots - index,
+                  transition: isDragging ? 'none' : 'transform 0.15s ease',
                 }}
               >
                 {menu ? (
@@ -448,12 +584,35 @@ export function StatusPanel() {
                     isGlowing={isGlowing}
                     isHovered={isHovered}
                     isDragging={isDragging}
-                    draggable
-                    onDragStart={handleMenuDragStart(index)}
-                    onDragOver={handleMenuDragOver}
-                    onDrop={handleMenuDrop(index)}
-                    onMouseEnter={() => setHoveredMenuIndex(index)}
-                    onMouseLeave={() => setHoveredMenuIndex(null)}
+                    isSelected={selectedMenuIndex === index}
+                    offsetX={offsetX}
+                    onMouseDown={handleMouseDown('menu', index)}
+                    onMouseEnter={() => !dragState && setActiveTooltip({ type: 'menu', id: menu.id, index })}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={() => {
+                      if (!dragState && !justDraggedRef.current) {
+                        setSelectedMenuIndex(prev => prev === index ? null : index);
+                        setSelectedStaffId(null);
+                      }
+                    }}
+                    tooltipContent={
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{menu.name}</div>
+                        <div>基本価格: {menu.price}円</div>
+                        {displayPrice !== menu.price && (
+                          <div style={{ color: '#006600', fontWeight: 'bold' }}>
+                            ボーナス後: {displayPrice}円
+                          </div>
+                        )}
+                        {menu.description && (
+                          <div style={{ marginTop: 4, color: '#666666' }}>
+                            {menu.description.split('\\n').map((line, i) => (
+                              <div key={i}>{line}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    }
                   />
                 ) : (
                   <EmptyCard onClick={openShop} />
