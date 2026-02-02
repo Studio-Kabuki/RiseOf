@@ -3,5 +3,5 @@ string,string,number,number,string,string,string,string
 doria,ミラノ風ドリア,30,0,https://img.icons8.com/fluency/48/rice-bowl.png,none,value=30,
 sausage_pizza,ソーセージピッツァ,10,0,https://img.icons8.com/fluency/48/pizza.png,pizza_synergy,value=10;multiplier=20;category=pizza,他のピザ1つにつき+20G
 pizza,マルゲリータ,25,0,https://img.icons8.com/fluency/48/pizza.png,none,value=25;category=pizza,ピザカテゴリ
-pudding,イタリアンプリン,10,0,https://img.icons8.com/fluency/48/pudding.png,per_customer,value=10;perCustomer=1,今日の提供人数×1G追加
+pudding,イタリアンプリン,10,0,https://img.icons8.com/fluency/48/dessert.png,per_customer,value=10;perCustomer=1,今日の提供人数×1G追加
 chicken,辛辛チキン,10,0,https://img.icons8.com/fluency/48/fried-chicken.png,lit_chance,value=10;litChance=0.05,提供ごとに5%でLIT獲得
