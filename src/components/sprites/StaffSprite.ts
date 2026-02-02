@@ -8,6 +8,10 @@ export class StaffSprite extends Container {
   private currentFoodIconUrl: string | null = null;
   private stateIcon: Sprite | null = null;
   private currentStateIconUrl: string | null = null;
+  // 調理中表示用
+  private progressRing: Graphics | null = null;
+  private cookingFoodIcon: Sprite | null = null;
+  private currentCookingIconUrl: string | null = null;
 
   constructor() {
     super();
@@ -40,6 +44,8 @@ export class StaffSprite extends Container {
     this.updateFoodSprite(staff);
     // 状態アイコン更新
     this.updateStateIcon(staff.state);
+    // 調理中の進捗表示を更新
+    this.updateCookingProgress(staff);
   }
 
   private updateFoodSprite(staff: Staff): void {
@@ -120,12 +126,94 @@ export class StaffSprite extends Container {
     this.currentStateIconUrl = iconUrl;
   }
 
+  /**
+   * 調理中の進捗表示を更新
+   */
+  private updateCookingProgress(staff: Staff): void {
+    if (staff.state === 'cooking' && staff.currentFood) {
+      // 調理中：料理アイコンと進捗ゲージを表示
+      this.updateCookingFoodIcon(staff.currentFood.iconUrl);
+      this.drawProgressRing(staff.cookingProgress);
+    } else {
+      // 調理中でない：アイコンとゲージを非表示
+      this.updateCookingFoodIcon(null);
+      if (this.progressRing) {
+        this.progressRing.clear();
+      }
+    }
+  }
+
+  /**
+   * 調理中の料理アイコンを更新
+   */
+  private updateCookingFoodIcon(iconUrl: string | null): void {
+    if (iconUrl === this.currentCookingIconUrl) {
+      return; // 同じアイコンなら更新不要
+    }
+
+    // 古いアイコンを削除
+    if (this.cookingFoodIcon) {
+      this.removeChild(this.cookingFoodIcon);
+      this.cookingFoodIcon.destroy();
+      this.cookingFoodIcon = null;
+    }
+
+    // 新しいアイコンを作成
+    if (iconUrl) {
+      this.cookingFoodIcon = Sprite.from(iconUrl);
+      this.cookingFoodIcon.width = 24;
+      this.cookingFoodIcon.height = 24;
+      this.cookingFoodIcon.anchor.set(0.5);
+      this.cookingFoodIcon.x = 0;
+      this.cookingFoodIcon.y = -60; // 頭の上（ゲージの中央）
+      this.addChild(this.cookingFoodIcon);
+    }
+
+    this.currentCookingIconUrl = iconUrl;
+  }
+
+  /**
+   * 円形進捗ゲージを描画
+   */
+  private drawProgressRing(progress: number): void {
+    if (!this.progressRing) {
+      this.progressRing = new Graphics();
+      this.addChild(this.progressRing);
+    }
+
+    this.progressRing.clear();
+    this.progressRing.x = 0;
+    this.progressRing.y = -60; // 頭の上
+
+    const radius = 18;
+    const lineWidth = 4;
+
+    // 背景リング（灰色）
+    this.progressRing.circle(0, 0, radius);
+    this.progressRing.stroke({ width: lineWidth, color: 0x333333, alpha: 0.3 });
+
+    // 進捗リング（オレンジ）
+    if (progress > 0) {
+      const startAngle = -Math.PI / 2; // 12時方向から開始
+      const endAngle = startAngle + Math.PI * 2 * progress;
+
+      this.progressRing.arc(0, 0, radius, startAngle, endAngle);
+      this.progressRing.stroke({ width: lineWidth, color: 0xff9800 });
+    }
+  }
+
   destroy(): void {
     if (this.foodSprite) {
       this.foodSprite.destroy();
     }
     if (this.stateIcon) {
       this.stateIcon.destroy();
+    }
+    if (this.progressRing) {
+      this.progressRing.destroy();
+    }
+    if (this.cookingFoodIcon) {
+      this.cookingFoodIcon.destroy();
     }
     super.destroy();
   }

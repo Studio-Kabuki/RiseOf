@@ -1,7 +1,6 @@
 import type { Application, Ticker } from 'pixi.js';
 import { CustomerSystem } from './systems/CustomerSystem';
 import { StaffSystem } from './systems/StaffSystem';
-import { KitchenSystem } from './systems/KitchenSystem';
 import { useRestaurantStore } from '../store';
 
 export interface GameSystem {
@@ -18,9 +17,10 @@ export class GameEngine {
     this.boundUpdate = this.update.bind(this);
 
     // システムを登録
+    // CustomerSystem: お客さんの入店、注文、食事、退店を処理
     this.systems.push(new CustomerSystem());
+    // StaffSystem: スタッフの調理と配膳の両方を担当（CookとStaffを統合）
     this.systems.push(new StaffSystem());
-    this.systems.push(new KitchenSystem());
   }
 
   start(): void {

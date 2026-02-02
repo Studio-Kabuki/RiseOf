@@ -1,12 +1,10 @@
 import { create } from 'zustand';
-import type { Customer, Staff, Cook } from '../types';
+import type { Customer, Staff } from '../types';
 import {
   CUSTOMER_SPEED,
   STAFF_SPEED,
-  COOK_SPEED,
   ENTRANCE_POSITION,
   getStaffIdlePosition,
-  getCookIdlePosition,
 } from '../constants/game';
 
 // 待機列の位置（店の外）
@@ -16,7 +14,6 @@ const WAITING_LINE_SPACING = 30; // 待機列の間隔
 interface EntityState {
   customers: Customer[];
   staff: Staff[];
-  cooks: Cook[];
   waitingQueue: string[]; // 待機中のお客さんID（店外で並んでいる）
 
   // Customer actions
@@ -29,17 +26,11 @@ interface EntityState {
   getWaitingPosition: (index: number) => { x: number; y: number }; // 待機位置を取得
   clearAllCustomers: () => void; // 全お客さんを即座にクリア
 
-  // Staff actions
+  // Staff actions（調理・配膳両方対応）
   addStaff: () => string;
   updateStaff: (id: string, updates: Partial<Staff>) => void;
   getStaff: (id: string) => Staff | undefined;
   resetAllStaff: () => void; // 全スタッフを定位置に戻す
-
-  // Cook actions
-  addCook: () => string;
-  updateCook: (id: string, updates: Partial<Cook>) => void;
-  getCook: (id: string) => Cook | undefined;
-  resetAllCooks: () => void; // 全コックを定位置に戻す
 
   // Reset
   reset: () => void;
@@ -47,12 +38,10 @@ interface EntityState {
 
 let customerIdCounter = 0;
 let staffIdCounter = 0;
-let cookIdCounter = 0;
 
 export const useEntityStore = create<EntityState>((set, get) => ({
   customers: [],
   staff: [],
-  cooks: [],
   waitingQueue: [],
 
   addCustomer: (seatId: string) => {
@@ -150,14 +139,17 @@ export const useEntityStore = create<EntityState>((set, get) => ({
     const id = `staff-${++staffIdCounter}`;
     const currentStaffCount = get().staff.length;
     const idlePosition = getStaffIdlePosition(currentStaffCount);
+    // 統合スタッフ: 調理と配膳の両方を担当
     const staff: Staff = {
       id,
       position: { ...idlePosition },
       speed: STAFF_SPEED,
       state: 'idle',
-      carryingFood: null,
-      targetCustomerId: null,
-      targetOrderId: null,
+      currentOrderId: null, // 処理中の注文ID
+      currentFood: null, // 調理中の料理
+      cookingProgress: 0, // 調理進捗
+      carryingFood: null, // 運んでいる料理
+      targetCustomerId: null, // 配膳対象の客ID
     };
     set((state) => ({
       staff: [...state.staff, staff],
@@ -178,49 +170,11 @@ export const useEntityStore = create<EntityState>((set, get) => ({
         ...s,
         position: { ...getStaffIdlePosition(index) },
         state: 'idle' as const,
-        carryingFood: null,
-        targetCustomerId: null,
-        targetOrderId: null,
-      })),
-    }));
-  },
-
-  // Cook actions
-  addCook: () => {
-    const id = `cook-${++cookIdCounter}`;
-    const currentCookCount = get().cooks.length;
-    const idlePosition = getCookIdlePosition(currentCookCount);
-    const cook: Cook = {
-      id,
-      position: { ...idlePosition },
-      speed: COOK_SPEED,
-      state: 'idle',
-      currentOrderId: null,
-      currentFood: null,
-      cookingProgress: 0,
-    };
-    set((state) => ({
-      cooks: [...state.cooks, cook],
-    }));
-    return id;
-  },
-
-  updateCook: (id, updates) =>
-    set((state) => ({
-      cooks: state.cooks.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-    })),
-
-  getCook: (id) => get().cooks.find((c) => c.id === id),
-
-  resetAllCooks: () => {
-    set((state) => ({
-      cooks: state.cooks.map((c, index) => ({
-        ...c,
-        position: { ...getCookIdlePosition(index) },
-        state: 'idle' as const,
         currentOrderId: null,
         currentFood: null,
         cookingProgress: 0,
+        carryingFood: null,
+        targetCustomerId: null,
       })),
     }));
   },
@@ -228,7 +182,6 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   reset: () => {
     customerIdCounter = 0;
     staffIdCounter = 0;
-    cookIdCounter = 0;
-    set({ customers: [], staff: [], cooks: [], waitingQueue: [] });
+    set({ customers: [], staff: [], waitingQueue: [] });
   },
 }));

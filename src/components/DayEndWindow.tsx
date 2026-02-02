@@ -21,7 +21,7 @@ export const DayEndWindow = () => {
     addLit,
     lit,
   } = useRestaurantStore();
-  const { customers, clearAllCustomers, resetAllStaff, resetAllCooks } = useEntityStore();
+  const { customers, clearAllCustomers, resetAllStaff } = useEntityStore();
   const { refreshLineup, openShop } = useShopStore();
 
   // 家賃支払い状態の管理
@@ -62,12 +62,10 @@ export const DayEndWindow = () => {
       clearAllSeats();
       // 全注文をクリア
       clearAllOrders();
-      // スタッフを定位置に戻す
+      // スタッフを定位置に戻す（調理・配膳両方を担当）
       resetAllStaff();
-      // コックを定位置に戻す
-      resetAllCooks();
     }
-  }, [showDayEnd, customers, addMoney, addLit, clearAllCustomers, clearAllSeats, clearAllOrders, resetAllStaff, resetAllCooks]);
+  }, [showDayEnd, customers, addMoney, addLit, clearAllCustomers, clearAllSeats, clearAllOrders, resetAllStaff]);
 
   // showDayEnd時に自動で家賃支払いを試みる
   useEffect(() => {

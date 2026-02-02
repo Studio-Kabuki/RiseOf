@@ -5,7 +5,6 @@ import { useEntityStore, useRestaurantStore } from '../store';
 import {
   CustomerSprite,
   StaffSprite,
-  CookSprite,
   TableSprite,
   KitchenSprite,
   EntranceSprite,
@@ -28,7 +27,6 @@ export function RestaurantMap() {
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
   const staffSpritesRef = useRef<Map<string, StaffSprite>>(new Map());
-  const cookSpritesRef = useRef<Map<string, CookSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
@@ -46,7 +44,7 @@ export function RestaurantMap() {
   });
 
   // Store
-  const { addStaff, addCook } = useEntityStore();
+  const { addStaff } = useEntityStore();
   const { restaurant } = useRestaurantStore();
 
   // スプライト更新
@@ -56,12 +54,10 @@ export function RestaurantMap() {
 
     const customerSprites = customerSpritesRef.current;
     const staffSprites = staffSpritesRef.current;
-    const cookSprites = cookSpritesRef.current;
 
     // 現在のエンティティ状態を取得
     const currentCustomers = useEntityStore.getState().customers;
     const currentStaff = useEntityStore.getState().staff;
-    const currentCooks = useEntityStore.getState().cooks;
     const currentRestaurant = useRestaurantStore.getState().restaurant;
 
     // Customerスプライト更新
@@ -106,27 +102,6 @@ export function RestaurantMap() {
         staffSprites.set(s.id, sprite);
       }
       sprite.update(s);
-    }
-
-    // Cookスプライト更新
-    const cookIds = new Set(currentCooks.map((c) => c.id));
-
-    for (const [id, sprite] of cookSprites) {
-      if (!cookIds.has(id)) {
-        dynamicContainer.removeChild(sprite);
-        sprite.destroy();
-        cookSprites.delete(id);
-      }
-    }
-
-    for (const cook of currentCooks) {
-      let sprite = cookSprites.get(cook.id);
-      if (!sprite) {
-        sprite = new CookSprite();
-        dynamicContainer.addChild(sprite);
-        cookSprites.set(cook.id, sprite);
-      }
-      sprite.update(cook);
     }
 
     // キッチン更新
@@ -367,13 +342,9 @@ export function RestaurantMap() {
         engineRef.current = engine;
 
         // 初期スタッフを追加（まだいない場合のみ）
+        // スタッフは調理と配膳の両方を担当（CookとStaffを統合）
         if (useEntityStore.getState().staff.length === 0) {
           addStaff();
-        }
-
-        // 初期コック（キッチンスタッフ）を追加（まだいない場合のみ）
-        if (useEntityStore.getState().cooks.length === 0) {
-          addCook();
         }
 
         // お客さんは CustomerSystem が isOpen 時に自動スポーンする
@@ -405,7 +376,6 @@ export function RestaurantMap() {
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();
-      cookSpritesRef.current.clear();
       dynamicContainerRef.current = null;
       kitchenSpriteRef.current = null;
       worldContainerRef.current = null;

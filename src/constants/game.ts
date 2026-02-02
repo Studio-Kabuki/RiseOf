@@ -28,8 +28,8 @@ export const SEAT_OFFSETS = [
   { x: 30, y: 30 },   // 右下
 ];
 
-// キッチンスタッフ用のレイアウト
-export const COOK_SPACING = 40;
+// スタッフ配置間隔（統合スタッフシステム用）
+export const STAFF_SPACING = 40;
 
 // ------------------------------------------------------------
 // 時間・タイミング設定
@@ -60,8 +60,8 @@ export const CUSTOMER_SPEED = 80;
 // 店員の移動速度 - UPGRADEABLE: 店員のレベルアップで向上
 export const STAFF_SPEED = 120;
 
-// コックの移動速度
-export const COOK_SPEED = 60;
+// スタッフの調理時移動速度（キッチン内での動き）
+export const STAFF_COOKING_SPEED = 100;
 
 // ------------------------------------------------------------
 // 経済・ノルマ設定
@@ -106,8 +106,6 @@ export const SEAT_COUNT = 4;
 // 店員数 - UPGRADEABLE: 店員雇用で増加
 export const INITIAL_STAFF_COUNT = 1;
 
-// コック数 - UPGRADEABLE: コック雇用で増加
-export const INITIAL_COOK_COUNT = 1;
 
 // ------------------------------------------------------------
 // ヘルパー関数
@@ -119,9 +117,9 @@ export const getStaffIdlePosition = (staffIndex: number) => ({
   y: REGISTER_POSITION.y,
 });
 
-// コックの定位置を取得（キッチン内、インデックスに基づく）
-export const getCookIdlePosition = (cookIndex: number) => ({
-  x: KITCHEN_POSITION.x - 30 + cookIndex * COOK_SPACING,
+// スタッフの調理位置を取得（キッチン内、インデックスに基づく）
+export const getStaffCookingPosition = (staffIndex: number) => ({
+  x: KITCHEN_POSITION.x - 30 + staffIndex * STAFF_SPACING,
   y: KITCHEN_POSITION.y,
 });
 
@@ -144,3 +142,15 @@ export const ICONS = {
     serving: 'https://img.icons8.com/fluency/48/restaurant.png',
   },
 };
+
+// ------------------------------------------------------------
+// 後方互換性のためのエイリアス（deprecated）
+// 統合スタッフシステムにより、コックは廃止され
+// スタッフが調理・配膳の両方を担当します
+// ------------------------------------------------------------
+/** @deprecated 統合スタッフシステムでは STAFF_COOKING_SPEED を使用 */
+export const COOK_SPEED = STAFF_COOKING_SPEED;
+/** @deprecated 統合スタッフシステムでは STAFF_SPACING を使用 */
+export const COOK_SPACING = STAFF_SPACING;
+/** @deprecated 統合スタッフシステムでは getStaffCookingPosition を使用 */
+export const getCookIdlePosition = getStaffCookingPosition;

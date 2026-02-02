@@ -4,7 +4,7 @@ import type { Kitchen } from '../../types';
 /**
  * キッチンスプライト
  * キッチン本体と完成した料理のアイコンを表示
- * 調理中の進捗表示はCookSpriteが担当
+ * 調理中の進捗表示はStaffSpriteが担当（統合スタッフシステム）
  */
 export class KitchenSprite extends Container {
   private kitchenGraphics: Graphics;
