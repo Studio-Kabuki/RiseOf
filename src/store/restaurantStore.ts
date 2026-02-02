@@ -12,6 +12,7 @@ import {
   INITIAL_LIT,
   ICONS,
 } from '../constants/game';
+import { useEntityStore } from './entityStore';
 
 // 初期レストラン設定
 const createInitialRestaurant = (): Restaurant => ({
@@ -379,10 +380,29 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
       const newDayTimeElapsed = state.dayTimeElapsed + deltaTime;
       const timeEnded = newDayTimeElapsed >= DAY_DURATION;
-      const normaAchieved = state.money >= state.currentRent;
 
       // 時間終了時の処理（まだcanCloseでもisGameOverでもない場合のみ）
       if (timeEnded && !state.canClose && !state.isGameOver) {
+        // 店内にいるお客さんの未払い金額を計算
+        const entityState = useEntityStore.getState();
+        const pendingRevenue = entityState.customers.reduce((sum, customer) => {
+          // 店内にいるお客さん（leaving, waiting_outside, paying以外）の注文金額
+          if (
+            customer.state !== 'leaving' &&
+            customer.state !== 'waiting_outside' &&
+            customer.state !== 'paying'
+          ) {
+            if (customer.orderedFood) {
+              return sum + customer.orderedFood.price;
+            }
+          }
+          return sum;
+        }, 0);
+
+        // 現在のお金 + 未払い金額でノルマ判定
+        const normaAchieved =
+          state.money + pendingRevenue >= state.currentRent;
+
         if (!normaAchieved) {
           // ノルマ未達成 → 即座にゲームオーバー
           return {

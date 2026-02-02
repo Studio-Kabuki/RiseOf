@@ -48,7 +48,7 @@ export const ORDERING_DELAY = 0.5;
 export const EATING_TIME = 10;
 
 // デフォルト調理時間（秒）- 料理ごとに個別設定も可能
-export const COOKING_TIME = 3;
+export const COOKING_TIME = 2;
 
 // ------------------------------------------------------------
 // 移動速度設定 (px/秒)
