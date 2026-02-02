@@ -132,14 +132,14 @@ function calculateMenuGold(menu: MenuItem, context: SalesContext): number {
   if (category) {
     const { categoryBonuses, baseBonuses } = getStaffBonuses();
 
-    // ベースボーナス適用（加算型: 0なら変化なし、2.0なら+200%）
+    // ベースボーナス適用（フラット加算型: +50なら+50円）
     const baseBonusValue = baseBonuses[category] || 0;
-    const baseBonusMultiplier = 1 + baseBonusValue;
+    baseGold = baseGold + baseBonusValue;
 
     // カテゴリボーナス適用（乗算型: 1なら変化なし、1.25なら×1.25）
     const categoryMultiplier = categoryBonuses[category] || 1;
 
-    baseGold = baseGold * baseBonusMultiplier * categoryMultiplier;
+    baseGold = baseGold * categoryMultiplier;
   }
 
   return baseGold;

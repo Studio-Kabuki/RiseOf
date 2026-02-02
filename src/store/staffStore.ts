@@ -20,7 +20,7 @@ interface StaffStoreState {
   cookingSpeedMultiplier: number; // 調理時間 × この値（0.5なら半分）
   customerSpeedMultiplier: number; // 来店間隔 ÷ この値（1.3なら30%速く）
   categoryBonuses: Record<string, number>; // カテゴリ別売上倍率
-  baseBonuses: Record<string, number>; // カテゴリ別ベース加算率
+  baseBonuses: Record<string, number>; // カテゴリ別ベース加算額（円）
   categoryCountBonuses: CategoryCountBonus[]; // カテゴリ数ボーナス（set_bonus, full_course）
 
   // Actions
@@ -63,15 +63,15 @@ function calculateAbilities(hiredStaff: StaffDefinition[]) {
       }
     });
 
-  // ベースボーナス: 同カテゴリは加算
+  // ベースボーナス: 同カテゴリは加算（フラット加算、円単位）
   const baseBonuses: Record<string, number> = {};
   hiredStaff
     .filter((s) => s.ability === 'base_bonus')
     .forEach((s) => {
       const cat = String(s.params.category || '');
-      const value = typeof s.params.value === 'number' ? s.params.value : 1;
+      const value = typeof s.params.value === 'number' ? s.params.value : 0;
       if (cat) {
-        baseBonuses[cat] = (baseBonuses[cat] || 1.0) + (value - 1);
+        baseBonuses[cat] = (baseBonuses[cat] || 0) + value;
       }
     });
 
