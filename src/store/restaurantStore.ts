@@ -458,6 +458,25 @@ export const createFood = (menu: MenuItem): Food => ({
   cookingTime: menu.cookingTime,
 });
 
+// Helper to create combo food from all registered menus
+// お客さん1人につき全メニュー合計金額を売上とし、調理は1回
+export const createComboFood = (menus: MenuItem[]): Food => {
+  const totalPrice = menus.reduce((sum, menu) => sum + menu.price, 0);
+  // 調理時間は登録メニューの中で最長のものを使用
+  const maxCookingTime = Math.max(...menus.map((menu) => menu.cookingTime), 0);
+  // 表示用に最初のメニューのアイコンを使用
+  const firstMenu = menus[0];
+
+  return {
+    id: `food-${++foodIdCounter}`,
+    menuId: 'combo',
+    name: '定食',
+    iconUrl: firstMenu?.iconUrl || '',
+    price: totalPrice,
+    cookingTime: maxCookingTime,
+  };
+};
+
 // Helper to create order with food
 export const createOrder = (customerId: string, food: Food): Order => ({
   id: `order-${++orderIdCounter}`,

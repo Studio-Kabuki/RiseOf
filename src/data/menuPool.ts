@@ -1,5 +1,6 @@
 import type { MenuItem } from '../types';
 import { getMenuPool } from './menuLoader';
+import { ICONS } from '../constants/game';
 
 // CSVから読み込んだメニュープールを取得
 export function getMENU_POOL(): MenuItem[] {
@@ -9,11 +10,11 @@ export function getMENU_POOL(): MenuItem[] {
 // 後方互換性のため（CSVロード前のフォールバック）
 export const MENU_POOL_FALLBACK: MenuItem[] = [
   {
-    id: 'doria',
-    name: 'ミラノ風ドリア',
-    price: 300,
+    id: 'meal',
+    name: 'おまかせ料理',
+    price: 350,
     cookingTime: 3,
-    iconUrl: 'https://img.icons8.com/fluency/48/rice-bowl.png',
+    iconUrl: ICONS.meal,
   },
 ];
 

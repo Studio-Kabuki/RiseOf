@@ -133,6 +133,8 @@ export const calculateRent = (day: number): number => {
 // ------------------------------------------------------------
 export const ICONS = {
   doria: 'https://img.icons8.com/fluency/48/rice-bowl.png',
+  // 汎用料理アイコン（個別メニューアイコンがない場合に使用）
+  meal: 'https://img.icons8.com/fluency/48/meal.png',
   // メニューがない時のはてなアイコン
   question: 'https://img.icons8.com/fluency/48/help.png',
   staff: {

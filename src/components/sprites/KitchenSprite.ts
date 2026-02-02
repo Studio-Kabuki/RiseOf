@@ -1,5 +1,6 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import type { Kitchen } from '../../types';
+import { ICONS } from '../../constants/game';
 
 /**
  * キッチンスプライト
@@ -46,7 +47,7 @@ export class KitchenSprite extends Container {
     for (let i = 0; i < kitchen.readyFoods.length; i++) {
       const orderId = kitchen.readyFoods[i];
       const order = kitchen.orders.find((o) => o.id === orderId);
-      const iconUrl = order?.food.iconUrl || 'https://img.icons8.com/fluency/48/rice-bowl.png';
+      const iconUrl = order?.food.iconUrl || ICONS.meal;
       const icon = Sprite.from(iconUrl);
       icon.width = 20;
       icon.height = 20;

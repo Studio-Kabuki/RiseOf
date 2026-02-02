@@ -1,7 +1,7 @@
 import type { GameSystem } from '../GameEngine';
 import type { Customer, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
-import { useRestaurantStore, createOrder, createFood } from '../../store/restaurantStore';
+import { useRestaurantStore, createOrder, createComboFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
 
@@ -176,7 +176,7 @@ export class CustomerSystem implements GameSystem {
     this.orderingTimers.set(customer.id, timer);
 
     if (timer >= ORDERING_DELAY) {
-      // 登録メニューからランダム選択
+      // 全登録メニューをまとめて注文（コンボ）
       const { registeredMenus } = useMenuStore.getState();
       if (registeredMenus.length === 0) {
         // メニューがない場合は待機状態へ（?吹き出し表示）
@@ -185,8 +185,8 @@ export class CustomerSystem implements GameSystem {
         return;
       }
 
-      const randomMenu = registeredMenus[Math.floor(Math.random() * registeredMenus.length)];
-      const food = createFood(randomMenu);
+      // 全メニュー合計金額で汎用的な「定食」を作成
+      const food = createComboFood(registeredMenus);
 
       updateCustomer(customer.id, {
         state: 'ordering',
@@ -208,9 +208,8 @@ export class CustomerSystem implements GameSystem {
     const { registeredMenus } = useMenuStore.getState();
 
     if (registeredMenus.length > 0) {
-      // メニューが登録された！ランダム選択して注文へ
-      const randomMenu = registeredMenus[Math.floor(Math.random() * registeredMenus.length)];
-      const food = createFood(randomMenu);
+      // メニューが登録された！全メニュー合計で注文へ
+      const food = createComboFood(registeredMenus);
 
       updateCustomer(customer.id, {
         state: 'ordering',

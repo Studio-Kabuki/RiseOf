@@ -48,7 +48,7 @@ export class CustomerSprite extends Container {
     const menuIconUrl =
       customer.state === 'waiting_for_menu'
         ? ICONS.question
-        : customer.orderedFood?.iconUrl || ICONS.doria;
+        : customer.orderedFood?.iconUrl || ICONS.meal;
 
     // デバッグ: 一度だけログ出力
     if (shouldShowBubble && customer.orderedFood && !this.bubble) {
