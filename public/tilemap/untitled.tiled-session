@@ -1,0 +1,74 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "diner.tmx",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "すべてのファイル (*)",
+    "fileStates": {
+        "50sdiner_room_door_tiles1.tsx": {
+            "scaleInDock": 1.1549,
+            "scaleInEditor": 2.49
+        },
+        "50sdiner_room_door_tiles2.tsx": {
+            "scaleInDock": 1.2802,
+            "scaleInEditor": 2.49
+        },
+        "diner.tmx": {
+            "expandedGroupLayers": [
+                38,
+                54
+            ],
+            "scale": 1.9593,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 153.37110192415656,
+                "y": -77.0683407339356
+            }
+        },
+        "diner.tsx": {
+            "scaleInDock": 1.3228,
+            "scaleInEditor": 2.49
+        },
+        "untitled.tmx": {
+            "expandedGroupLayers": [
+                23,
+                29,
+                38
+            ],
+            "scale": 1.25,
+            "selectedLayer": 8,
+            "viewCenter": {
+                "x": 182.79999999999998,
+                "y": -75.20000000000005
+            }
+        }
+    },
+    "last.imagePath": "/Users/akira.fujii/Downloads/50s_Diner",
+    "map.fixedSize": false,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "openFiles": [
+        "diner.tsx",
+        "50sdiner_room_door_tiles1.tsx",
+        "50sdiner_room_door_tiles2.tsx",
+        "diner.tmx"
+    ],
+    "project": "untitled.tiled-project",
+    "property.type": "int",
+    "recentFiles": [
+        "diner.tsx",
+        "50sdiner_room_door_tiles1.tsx",
+        "50sdiner_room_door_tiles2.tsx",
+        "diner.tmx",
+        "untitled.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

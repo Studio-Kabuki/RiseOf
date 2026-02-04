@@ -5,13 +5,12 @@ import { useEntityStore, useRestaurantStore } from '../store';
 import {
   CustomerSprite,
   StaffSprite,
-  TableSprite,
   KitchenSprite,
-  EntranceSprite,
-  RegisterSprite,
 } from './sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
+import { parseTmxFile, scaleTablePositions } from '../utils/tmxParser';
+import { parseTmxForRendering, loadTilesetTextures, renderTmxMap } from '../utils/tmxRenderer';
 
 // カメラ制御の定数
 const MIN_ZOOM = 0.5;
@@ -27,9 +26,7 @@ export function RestaurantMap() {
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
   const staffSpritesRef = useRef<Map<string, StaffSprite>>(new Map());
-  const tableSpritesRef = useRef<Map<string, TableSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
-  const staticContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
   // カメラ制御用
@@ -47,7 +44,7 @@ export function RestaurantMap() {
 
   // Store
   const { addStaff } = useEntityStore();
-  const { restaurant } = useRestaurantStore();
+  const { restaurant, setTables } = useRestaurantStore();
 
   // スプライト更新
   const updateSprites = () => {
@@ -110,31 +107,6 @@ export function RestaurantMap() {
     if (kitchenSpriteRef.current) {
       kitchenSpriteRef.current.update(currentRestaurant.kitchen);
     }
-
-    // テーブルスプライト更新（動的追加対応）
-    const staticContainer = staticContainerRef.current;
-    const tableSprites = tableSpritesRef.current;
-    if (staticContainer) {
-      const tableIds = new Set(currentRestaurant.tables.map((t) => t.id));
-
-      // 不要なテーブルスプライトを削除
-      for (const [id, sprite] of tableSprites) {
-        if (!tableIds.has(id)) {
-          staticContainer.removeChild(sprite);
-          sprite.destroy();
-          tableSprites.delete(id);
-        }
-      }
-
-      // 新しいテーブルスプライトを追加
-      for (const table of currentRestaurant.tables) {
-        if (!tableSprites.has(table.id)) {
-          const tableSprite = new TableSprite(table);
-          staticContainer.addChild(tableSprite);
-          tableSprites.set(table.id, tableSprite);
-        }
-      }
-    }
   };
 
   // Pixi.js初期化
@@ -154,7 +126,7 @@ export function RestaurantMap() {
         await app.init({
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
-          backgroundColor: 0xf5f5dc, // ベージュ
+          backgroundColor: 0xffffff, // 真っ白
           resolution: window.devicePixelRatio || 1,
           autoDensity: true,
         });
@@ -170,7 +142,6 @@ export function RestaurantMap() {
         const menuPool = getMenuPool();
 
         // アイコン画像をプリロード
-        // メニュープールの全アイコンと店員アイコンをプリロード
         const menuIconUrls = menuPool.map((menu) => menu.iconUrl);
         const staffIconUrls = [
           ICONS.staff.movingToKitchen,
@@ -189,30 +160,33 @@ export function RestaurantMap() {
         app.stage.addChild(worldContainer);
         worldContainerRef.current = worldContainer;
 
-        // 静的オブジェクト用コンテナ
-        const staticContainer = new Container();
-        worldContainer.addChild(staticContainer);
-        staticContainerRef.current = staticContainer;
+        // TMXファイルからマップを読み込み・描画
+        const TMX_SCALE = 4; // 16pxタイルを4倍に拡大
+        try {
+          // TMXをパースしてレンダリングデータを取得
+          const tmxRenderData = await parseTmxForRendering(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
+          // タイルセット画像をロード
+          await loadTilesetTextures(tmxRenderData.tilesets);
+          // TMXマップを描画
+          const tmxMapContainer = renderTmxMap(tmxRenderData, TMX_SCALE);
+          worldContainer.addChild(tmxMapContainer);
+          console.log('[TMX] Rendered tilemap');
 
-        // 入口
-        const entrance = new EntranceSprite(restaurant.entrancePosition);
-        staticContainer.addChild(entrance);
-
-        // テーブル（初期テーブルをマップに登録）
-        for (const table of restaurant.tables) {
-          const tableSprite = new TableSprite(table);
-          staticContainer.addChild(tableSprite);
-          tableSpritesRef.current.set(table.id, tableSprite);
+          // テーブル・座席情報も取得して設定
+          const tmxData = await parseTmxFile(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
+          const scaledTables = scaleTablePositions(tmxData.tables, TMX_SCALE);
+          if (scaledTables.length > 0) {
+            setTables(scaledTables);
+            console.log('[TMX] Loaded tables from TMX:', scaledTables);
+          }
+        } catch (tmxError) {
+          console.error('[TMX] Failed to load TMX:', tmxError);
         }
 
-        // キッチン
+        // キッチン（完成料理のアイコン表示用）
         const kitchenSprite = new KitchenSprite(restaurant.kitchen);
-        staticContainer.addChild(kitchenSprite);
+        worldContainer.addChild(kitchenSprite);
         kitchenSpriteRef.current = kitchenSprite;
-
-        // レジエリア
-        const registerSprite = new RegisterSprite(4);
-        staticContainer.addChild(registerSprite);
 
         // 動的オブジェクト用コンテナ
         const dynamicContainer = new Container();
@@ -405,9 +379,7 @@ export function RestaurantMap() {
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();
-      tableSpritesRef.current.clear();
       dynamicContainerRef.current = null;
-      staticContainerRef.current = null;
       kitchenSpriteRef.current = null;
       worldContainerRef.current = null;
       // カメラ状態をリセット
