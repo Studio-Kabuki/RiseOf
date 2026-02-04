@@ -70,6 +70,7 @@ interface RestaurantState {
   showUpgrade: boolean; // アップグレードウィンドウを表示するか
   lastUpgradeDay: number; // 最後にアップグレードした日
   seatCount: number; // 現在の座席数
+  tableUnlockLevel: number; // テーブル解放レベル（この値以下のindexを持つテーブルが利用可能）
 
   // お金エフェクト
   moneyEffects: Array<{ id: string; amount: number; x: number; y: number; createdAt: number }>;
@@ -128,6 +129,13 @@ interface RestaurantState {
   canShowUpgrade: () => boolean; // アップグレード可能かどうか
   addSeat: () => void; // 座席を1つ追加
 
+  // TMXからテーブルを設定
+  setTables: (tables: import('../types').Table[]) => void;
+
+  // テーブル解放
+  getUnlockedTables: () => import('../types').Table[]; // 解放済みテーブルを取得
+  unlockNextTable: () => boolean; // 次のテーブルを解放（成功でtrue）
+
   // エフェクトアクション
   addMoneyEffect: (amount: number, x: number, y: number) => void;
   removeMoneyEffect: (id: string) => void;
@@ -169,6 +177,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   showUpgrade: false,
   lastUpgradeDay: 0,
   seatCount: SEAT_COUNT,
+  tableUnlockLevel: 2, // 初期は index <= 2 のテーブルを解放
 
   // お金エフェクト
   moneyEffects: [],
@@ -272,9 +281,13 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     })),
 
   getAvailableSeats: () => {
-    const { restaurant } = get();
+    const { restaurant, tableUnlockLevel } = get();
     const availableSeats: Seat[] = [];
     for (const table of restaurant.tables) {
+      // 解放レベル以下のテーブルのみ対象
+      if (table.index !== undefined && table.index > tableUnlockLevel) {
+        continue;
+      }
       for (const seat of table.seats) {
         if (seat.customerId === null) {
           availableSeats.push(seat);
@@ -540,6 +553,53 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     });
   },
 
+  // TMXからテーブルを設定
+  setTables: (tables) => {
+    set((state) => {
+      // 解放済みテーブルの座席数を計算
+      const unlockedSeats = tables
+        .filter((t) => t.index === undefined || t.index <= state.tableUnlockLevel)
+        .reduce((sum, table) => sum + table.seats.length, 0);
+      return {
+        seatCount: unlockedSeats,
+        restaurant: {
+          ...state.restaurant,
+          tables,
+        },
+      };
+    });
+  },
+
+  // 解放済みテーブルを取得
+  getUnlockedTables: () => {
+    const { restaurant, tableUnlockLevel } = get();
+    return restaurant.tables.filter(
+      (table) => table.index === undefined || table.index <= tableUnlockLevel
+    );
+  },
+
+  // 次のテーブルを解放
+  unlockNextTable: () => {
+    const { restaurant, tableUnlockLevel } = get();
+    // 次に解放可能なテーブルがあるか確認
+    const nextTable = restaurant.tables.find((t) => t.index === tableUnlockLevel + 1);
+    if (nextTable) {
+      set((state) => {
+        const newLevel = state.tableUnlockLevel + 1;
+        // 解放済みテーブルの座席数を再計算
+        const unlockedSeats = state.restaurant.tables
+          .filter((t) => t.index === undefined || t.index <= newLevel)
+          .reduce((sum, table) => sum + table.seats.length, 0);
+        return {
+          tableUnlockLevel: newLevel,
+          seatCount: unlockedSeats,
+        };
+      });
+      return true;
+    }
+    return false;
+  },
+
   // エフェクトアクション
   addMoneyEffect: (amount: number, x: number, y: number) => {
     const id = `effect-${Date.now()}-${Math.random()}`;
@@ -590,6 +650,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       showUpgrade: false,
       lastUpgradeDay: 0,
       seatCount: SEAT_COUNT,
+      tableUnlockLevel: 2, // 初期解放レベルにリセット
       // エフェクトのリセット
       moneyEffects: [],
     });

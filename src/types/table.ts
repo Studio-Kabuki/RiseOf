@@ -9,5 +9,6 @@ export interface Seat {
 export interface Table {
   id: string;
   position: Position; // テーブルの中心座標
-  seats: Seat[]; // 座席（4つ）
+  seats: Seat[]; // 座席
+  index?: number; // 解放レベル（0から順に解放）
 }
