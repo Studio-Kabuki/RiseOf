@@ -28,7 +28,7 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
         transform: isHovered && !disabled ? 'translateY(-4px)' : 'none',
         boxShadow: isHovered && !disabled ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
       }}
     >
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -67,7 +67,7 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
           cursor: disabled ? 'not-allowed' : 'pointer',
           fontSize: 11,
           fontWeight: 'bold',
-          fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          fontFamily: 'inherit',
         }}
       >
         {disabled ? 'SOLD OUT' : `雇う ${staff.cost} LIT`}
@@ -94,7 +94,7 @@ function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => voi
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
         transform: isHovered ? 'translateY(-4px)' : 'none',
         boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
       }}
     >
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -132,7 +132,7 @@ function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => voi
           cursor: 'pointer',
           fontSize: 11,
           fontWeight: 'bold',
-          fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          fontFamily: 'inherit',
         }}
       >
         これにする
@@ -156,7 +156,7 @@ function RetroButton({ children, onClick, disabled, color }: { children: React.R
         borderRight: '2px solid #404040',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: 14,
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         fontWeight: 'bold',
       }}
     >
@@ -224,7 +224,7 @@ export function PreparePhaseScreen() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         backgroundColor: '#FFFEF0',
         padding: 16,
       }}

@@ -8,7 +8,7 @@ import { UpgradeWindow } from './components/UpgradeWindow';
 import { MoneyEffects } from './components/MoneyEffects';
 import { StatusPanel } from './components/StatusPanel';
 import { PreparePhaseScreen } from './components/PreparePhaseScreen';
-import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
+import { WindowButton, Win98IconButton, Win98LargeButton, CRTOverlay } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
 import './App.css';
 
@@ -51,7 +51,9 @@ function App() {
   };
 
   return (
-    <div className="app" style={{ fontFamily: 'MS Sans Serif, Tahoma, sans-serif' }}>
+    <div className="app" style={{ fontFamily: '"DotGothic16", "MS Gothic", monospace' }}>
+      {/* CRTモニター風エフェクト */}
+      <CRTOverlay />
       {/* 1日終了ウィンドウ */}
       <DayEndWindow />
 

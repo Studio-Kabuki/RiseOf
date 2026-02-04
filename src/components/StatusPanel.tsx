@@ -58,7 +58,7 @@ function Win98Tooltip({ children, style }: TooltipProps) {
         border: '1px solid #000000',
         padding: '6px 8px',
         fontSize: 11,
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         whiteSpace: 'nowrap',
         zIndex: 1000,
         boxShadow: '2px 2px 4px rgba(0,0,0,0.3)',
@@ -167,7 +167,7 @@ function Card({
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          fontFamily: 'inherit',
           pointerEvents: 'none',
         }}
       >
@@ -180,7 +180,7 @@ function Card({
             color: '#008000',
             fontWeight: 'bold',
             textAlign: 'center',
-            fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+            fontFamily: 'inherit',
             pointerEvents: 'none',
           }}
         >
@@ -235,7 +235,7 @@ function CollapseButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
         borderRight: '1px solid #808080',
         cursor: 'pointer',
         fontSize: 10,
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

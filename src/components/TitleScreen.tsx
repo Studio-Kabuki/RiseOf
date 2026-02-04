@@ -95,7 +95,7 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
             borderBottom: '3px solid #808080',
             borderRight: '3px solid #808080',
             cursor: 'pointer',
-            fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+            fontFamily: 'inherit',
             outline: 'none',
           }}
           onMouseDown={(e) => {

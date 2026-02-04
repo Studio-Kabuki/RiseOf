@@ -46,7 +46,7 @@ export function Win98LargeButton({
         ...borderStyle,
         padding: '16px 48px',
         cursor: 'pointer',
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         outline: 'none',
       }}
     >

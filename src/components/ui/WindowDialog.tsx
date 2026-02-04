@@ -61,7 +61,7 @@ export function WindowDialog({
           borderBottom: '2px solid #404040',
           borderRight: '2px solid #404040',
           boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.4)',
-          fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+          fontFamily: 'inherit',
           pointerEvents: 'auto', // ダイアログ本体はポインターイベントを受け取る
         }}
       >

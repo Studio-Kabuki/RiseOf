@@ -27,6 +27,7 @@ export interface TmxMapData {
   tileHeight: number;
   tables: Table[];
   tableGroups: TableGroupData[];
+  cameraCenter?: { x: number; y: number }; // カメラ初期位置
 }
 
 // プロパティを取得
@@ -65,8 +66,13 @@ function findTableGroups(
       for (const obj of objects) {
         const objType = obj.getAttribute('type');
         if (objType === 'customer') {
-          const x = parseFloat(obj.getAttribute('x') || '0') + offsetX;
-          const y = parseFloat(obj.getAttribute('y') || '0') + offsetY;
+          // オブジェクトの中心座標を計算（Tiledは左上原点）
+          const objX = parseFloat(obj.getAttribute('x') || '0');
+          const objY = parseFloat(obj.getAttribute('y') || '0');
+          const objW = parseFloat(obj.getAttribute('width') || '16');
+          const objH = parseFloat(obj.getAttribute('height') || '16');
+          const x = objX + objW / 2 + offsetX;
+          const y = objY + objH / 2 + offsetY;
           const directionStr = getProperty(obj, 'direction') || 'down';
           const direction = directionStr as 'up' | 'down' | 'left' | 'right';
 
@@ -152,14 +158,32 @@ export async function parseTmxFile(tmxUrl: string): Promise<TmxMapData> {
     };
   });
 
+  // camera_center オブジェクトを探す
+  let cameraCenter: { x: number; y: number } | undefined;
+  const allObjects = doc.querySelectorAll('object');
+  for (const obj of allObjects) {
+    const objType = obj.getAttribute('type');
+    if (objType === 'camera_center') {
+      // オブジェクトの中心座標を計算（Tiledは左上原点）
+      const objX = parseFloat(obj.getAttribute('x') || '0');
+      const objY = parseFloat(obj.getAttribute('y') || '0');
+      const objW = parseFloat(obj.getAttribute('width') || '16');
+      const objH = parseFloat(obj.getAttribute('height') || '16');
+      cameraCenter = { x: objX + objW / 2, y: objY + objH / 2 };
+      break;
+    }
+  }
+
   console.log('[TMX Parser] Parsed table groups:', tableGroups);
   console.log('[TMX Parser] Tables:', tables);
+  console.log('[TMX Parser] Camera center:', cameraCenter);
 
   return {
     tileWidth,
     tileHeight,
     tables,
     tableGroups,
+    cameraCenter,
   };
 }
 

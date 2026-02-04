@@ -53,7 +53,7 @@ export function WindowButton({
         ...buttonBaseStyle,
         padding,
         fontSize,
-        fontFamily: 'MS Sans Serif, Tahoma, sans-serif',
+        fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
         backgroundColor: '#C0C0C0',
         color: disabled ? '#808080' : '#000000',

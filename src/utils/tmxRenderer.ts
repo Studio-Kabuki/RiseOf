@@ -353,7 +353,7 @@ function renderGroup(
 }
 
 // TMXマップ全体を描画
-export function renderTmxMap(data: TmxRenderData, scale: number = 4): Container {
+export function renderTmxMap(data: TmxRenderData): Container {
   const container = new Container();
 
   // 子要素を順序通りに描画
@@ -361,9 +361,6 @@ export function renderTmxMap(data: TmxRenderData, scale: number = 4): Container 
     const childContainer = renderChild(child, data.tilesets, data.tileWidth, data.tileHeight);
     container.addChild(childContainer);
   }
-
-  // コンテナ全体をスケール
-  container.scale.set(scale);
 
   console.log(`[TMX] Rendered ${data.children.length} top-level elements`);
 

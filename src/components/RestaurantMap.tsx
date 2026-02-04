@@ -9,11 +9,11 @@ import {
 } from './sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
-import { parseTmxFile, scaleTablePositions } from '../utils/tmxParser';
+import { parseTmxFile } from '../utils/tmxParser';
 import { parseTmxForRendering, loadTilesetTextures, renderTmxMap } from '../utils/tmxRenderer';
 
 // カメラ制御の定数
-const MIN_ZOOM = 0.5;
+const MIN_ZOOM = 0.3; // より広い視野でズームアウト可能
 const MAX_ZOOM = 2.0;
 const ZOOM_SPEED = 0.001;
 
@@ -32,7 +32,7 @@ export function RestaurantMap() {
   // カメラ制御用
   const worldContainerRef = useRef<Container | null>(null);
   const cameraStateRef = useRef({
-    scale: 1,
+    scale: MIN_ZOOM, // 最もズームアウトした状態をデフォルトに
     x: 0,
     y: 0,
     isDragging: false,
@@ -161,23 +161,42 @@ export function RestaurantMap() {
         worldContainerRef.current = worldContainer;
 
         // TMXファイルからマップを読み込み・描画
-        const TMX_SCALE = 4; // 16pxタイルを4倍に拡大
         try {
           // TMXをパースしてレンダリングデータを取得
           const tmxRenderData = await parseTmxForRendering(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
           // タイルセット画像をロード
           await loadTilesetTextures(tmxRenderData.tilesets);
-          // TMXマップを描画
-          const tmxMapContainer = renderTmxMap(tmxRenderData, TMX_SCALE);
+          // TMXマップを描画（ネイティブサイズ）
+          const tmxMapContainer = renderTmxMap(tmxRenderData);
           worldContainer.addChild(tmxMapContainer);
           console.log('[TMX] Rendered tilemap');
 
-          // テーブル・座席情報も取得して設定
+          // テーブル・座席情報も取得
           const tmxData = await parseTmxFile(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
-          const scaledTables = scaleTablePositions(tmxData.tables, TMX_SCALE);
-          if (scaledTables.length > 0) {
-            setTables(scaledTables);
-            console.log('[TMX] Loaded tables from TMX:', scaledTables);
+
+          // マップサイズを取得してキャンバスに収まるスケールを計算
+          const mapWidth = tmxMapContainer.width;
+          const mapHeight = tmxMapContainer.height;
+          const fitScale = Math.min(CANVAS_WIDTH / mapWidth, CANVAS_HEIGHT / mapHeight);
+
+          // カメラのスケールを設定（マップ全体が見えるように）
+          const camera = cameraStateRef.current;
+          camera.scale = fitScale;
+          worldContainer.scale.set(camera.scale);
+
+          // camera_centerがあればそこを中心に、なければマップ全体を中央に配置
+          if (tmxData.cameraCenter) {
+            camera.x = CANVAS_WIDTH / 2 - tmxData.cameraCenter.x * camera.scale;
+            camera.y = CANVAS_HEIGHT / 2 - tmxData.cameraCenter.y * camera.scale;
+          } else {
+            camera.x = (CANVAS_WIDTH - mapWidth * camera.scale) / 2;
+            camera.y = (CANVAS_HEIGHT - mapHeight * camera.scale) / 2;
+          }
+          worldContainer.x = camera.x;
+          worldContainer.y = camera.y;
+          if (tmxData.tables.length > 0) {
+            setTables(tmxData.tables);
+            console.log('[TMX] Loaded tables from TMX:', tmxData.tables);
           }
         } catch (tmxError) {
           console.error('[TMX] Failed to load TMX:', tmxError);

@@ -1,6 +1,17 @@
-import { Container, Graphics, Sprite, Text } from 'pixi.js';
+import { Container, Sprite, Text, Assets } from 'pixi.js';
 import type { Kitchen } from '../../types';
 import { ICONS } from '../../constants/game';
+import counterImage from '../../assets/diner_counter_48x32.png';
+
+// テクスチャのプリロード用Promise
+let textureLoaded: Promise<void> | null = null;
+
+async function ensureTextureLoaded(): Promise<void> {
+  if (!textureLoaded) {
+    textureLoaded = Assets.load(counterImage).then(() => {});
+  }
+  return textureLoaded;
+}
 
 /**
  * キッチンスプライト
@@ -8,7 +19,7 @@ import { ICONS } from '../../constants/game';
  * 調理中の進捗表示はStaffSpriteが担当（統合スタッフシステム）
  */
 export class KitchenSprite extends Container {
-  private kitchenGraphics: Graphics;
+  private counterSprite: Sprite | null = null;
   private readyIcons: Sprite[] = [];
 
   constructor(kitchen: Kitchen) {
@@ -17,12 +28,8 @@ export class KitchenSprite extends Container {
     this.x = kitchen.position.x;
     this.y = kitchen.position.y;
 
-    // キッチン本体
-    this.kitchenGraphics = new Graphics();
-    this.kitchenGraphics.roundRect(-40, -30, 80, 60, 5);
-    this.kitchenGraphics.fill(0x607d8b); // グレー
-    this.kitchenGraphics.stroke({ width: 2, color: 0x455a64 });
-    this.addChild(this.kitchenGraphics);
+    // 非同期でスプライトを初期化
+    this.initSprite();
 
     // キッチンラベル
     const label = new Text({
@@ -30,8 +37,18 @@ export class KitchenSprite extends Container {
       style: { fontSize: 12, fill: 0xffffff },
     });
     label.anchor.set(0.5);
-    label.y = -40;
+    label.y = -50;
     this.addChild(label);
+  }
+
+  private async initSprite(): Promise<void> {
+    await ensureTextureLoaded();
+
+    const texture = Assets.get(counterImage);
+    this.counterSprite = new Sprite(texture);
+    this.counterSprite.anchor.set(0.5, 0.5);
+    this.counterSprite.scale.set(4, 4); // 4倍に拡大
+    this.addChildAt(this.counterSprite, 0);
   }
 
   update(kitchen: Kitchen): void {
@@ -53,7 +70,7 @@ export class KitchenSprite extends Container {
       icon.height = 20;
       icon.anchor.set(0.5);
       icon.x = xOffset + i * 24;
-      icon.y = 25;
+      icon.y = 40;
       this.addChild(icon);
       this.readyIcons.push(icon);
     }
@@ -63,7 +80,9 @@ export class KitchenSprite extends Container {
     for (const icon of this.readyIcons) {
       icon.destroy();
     }
-    this.kitchenGraphics.destroy();
+    if (this.counterSprite) {
+      this.counterSprite.destroy();
+    }
     super.destroy();
   }
 }

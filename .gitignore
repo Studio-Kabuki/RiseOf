@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+PIXEL/*
 node_modules
 dist
 dist-ssr
@@ -23,3 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+tilemap/
+*.tiled-project
+*.tiled-session
