@@ -171,41 +171,51 @@ function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => voi
   );
 }
 
-// シーズニングカード（マウスイベントベースのドラッグ）
+// シーズニングカード（マウス/タッチイベントベースのドラッグ、Windows98風）
 function DraggableSeasoningCard({
   seasoning,
   disabled,
   isDragging,
-  onMouseDown,
+  onPointerDown,
 }: {
   seasoning: SeasoningDefinition;
   disabled?: boolean;
   isDragging?: boolean;
-  onMouseDown: (e: React.MouseEvent, seasoningId: string, cost: number) => void;
+  onPointerDown: (clientX: number, clientY: number, seasoningId: string, cost: number) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (disabled) return;
     e.preventDefault();
-    onMouseDown(e, seasoning.id, seasoning.cost);
+    onPointerDown(e.clientX, e.clientY, seasoning.id, seasoning.cost);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (disabled) return;
+    const touch = e.touches[0];
+    onPointerDown(touch.clientX, touch.clientY, seasoning.id, seasoning.cost);
   };
 
   return (
     <div
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         width: 130,
-        backgroundColor: disabled ? '#E0E0E0' : '#FFF8E8',
-        border: '2px solid #DAA520',
+        backgroundColor: disabled ? '#D4D0C8' : '#C0C0C0',
+        borderTop: disabled ? '2px solid #808080' : '2px solid #FFFFFF',
+        borderLeft: disabled ? '2px solid #808080' : '2px solid #FFFFFF',
+        borderBottom: disabled ? '2px solid #404040' : '2px solid #404040',
+        borderRight: disabled ? '2px solid #404040' : '2px solid #404040',
         padding: 6,
         cursor: disabled ? 'not-allowed' : isDragging ? 'grabbing' : 'grab',
         opacity: isDragging ? 0.5 : disabled ? 0.6 : 1,
         transition: isDragging ? 'none' : 'transform 0.15s ease, box-shadow 0.15s ease',
-        transform: isHovered && !disabled && !isDragging ? 'translateY(-4px)' : 'none',
-        boxShadow: isHovered && !disabled ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
+        transform: isHovered && !disabled && !isDragging ? 'translateY(-2px)' : 'none',
+        boxShadow: isHovered && !disabled ? '2px 2px 4px rgba(0,0,0,0.4)' : 'none',
         fontFamily: 'inherit',
         userSelect: 'none',
       }}
@@ -215,7 +225,10 @@ function DraggableSeasoningCard({
           style={{
             width: 40,
             height: 40,
-            border: '1px solid #DAA520',
+            borderTop: '1px solid #808080',
+            borderLeft: '1px solid #808080',
+            borderBottom: '1px solid #FFFFFF',
+            borderRight: '1px solid #FFFFFF',
             backgroundColor: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -226,10 +239,10 @@ function DraggableSeasoningCard({
           <img src={seasoning.iconUrl} alt={seasoning.name} style={{ width: 32, height: 32 }} draggable={false} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 'bold', color: '#8B4513', marginBottom: 2 }}>
+          <div style={{ fontSize: 10, fontWeight: 'bold', color: '#000080', marginBottom: 2 }}>
             {seasoning.name}
           </div>
-          <div style={{ fontSize: 8, color: '#666666' }}>
+          <div style={{ fontSize: 8, color: '#404040' }}>
             {seasoning.description}
           </div>
         </div>
@@ -239,10 +252,13 @@ function DraggableSeasoningCard({
           textAlign: 'center',
           fontSize: 10,
           fontWeight: 'bold',
-          color: disabled ? '#808080' : '#8B4513',
+          color: disabled ? '#808080' : '#000000',
           padding: '3px 6px',
-          backgroundColor: disabled ? '#D0D0D0' : '#FFE4B5',
-          border: '1px solid #DAA520',
+          backgroundColor: disabled ? '#C0C0C0' : '#FFFFCC',
+          borderTop: '1px solid #808080',
+          borderLeft: '1px solid #808080',
+          borderBottom: '1px solid #FFFFFF',
+          borderRight: '1px solid #FFFFFF',
         }}
       >
         {disabled ? '購入不可' : `${seasoning.cost} LIT`}
@@ -310,7 +326,7 @@ export function PreparePhaseScreen() {
     }
   }, [phase]);
 
-  // シーズニングドラッグ中のマウス移動を追跡
+  // シーズニングドラッグ中のマウス/タッチ移動を追跡
   useEffect(() => {
     if (!draggingSeasoningId) return;
 
@@ -318,18 +334,28 @@ export function PreparePhaseScreen() {
       setDraggingSeasoningPosition({ x: e.clientX, y: e.clientY });
     };
 
-    const handleMouseUp = () => {
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // スクロール防止
+      const touch = e.touches[0];
+      setDraggingSeasoningPosition({ x: touch.clientX, y: touch.clientY });
+    };
+
+    const handleEnd = () => {
       // ドロップ処理はStatusPanel側で行う（位置ベースで判定）
       // ここではドラッグ状態をリセット
       setDraggingSeasoningId(null);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
     };
   }, [draggingSeasoningId, setDraggingSeasoningId, setDraggingSeasoningPosition]);
 
@@ -344,10 +370,10 @@ export function PreparePhaseScreen() {
     setPhase('shop');
   };
 
-  // シーズニングのマウスダウンハンドラー
-  const handleSeasoningMouseDown = (e: React.MouseEvent, seasoningId: string, cost: number) => {
+  // シーズニングのポインターダウンハンドラー（マウス/タッチ共通）
+  const handleSeasoningPointerDown = (clientX: number, clientY: number, seasoningId: string, cost: number) => {
     setDraggingSeasoningId(seasoningId, cost);
-    setDraggingSeasoningPosition({ x: e.clientX, y: e.clientY });
+    setDraggingSeasoningPosition({ x: clientX, y: clientY });
   };
 
   const handleOpenStore = () => {
@@ -464,7 +490,7 @@ export function PreparePhaseScreen() {
                         seasoning={seasoning}
                         disabled={!canAfford}
                         isDragging={draggingSeasoningId === seasoning.id}
-                        onMouseDown={handleSeasoningMouseDown}
+                        onPointerDown={handleSeasoningPointerDown}
                       />
                     );
                   })}
@@ -521,7 +547,7 @@ export function PreparePhaseScreen() {
         </div>
       )}
 
-      {/* ドラッグ中のシーズニングゴースト */}
+      {/* ドラッグ中のシーズニングゴースト（Windows98風） */}
       {draggingSeasoningId && draggingSeasoningPosition && (() => {
         const draggingSeasoning = seasoningOptions.find(s => s.id === draggingSeasoningId);
         if (!draggingSeasoning) return null;
@@ -531,14 +557,17 @@ export function PreparePhaseScreen() {
               position: 'fixed',
               left: draggingSeasoningPosition.x,
               top: draggingSeasoningPosition.y,
-              transform: 'translate(-50%, -50%)',
+              transform: 'translate(-50%, -50%) scale(1.1)',
               pointerEvents: 'none',
               zIndex: 1000,
               width: 130,
-              backgroundColor: '#FFF8E8',
-              border: '2px solid #FFD700',
+              backgroundColor: '#C0C0C0',
+              borderTop: '2px solid #FFFFFF',
+              borderLeft: '2px solid #FFFFFF',
+              borderBottom: '2px solid #404040',
+              borderRight: '2px solid #404040',
               padding: 6,
-              boxShadow: '0 8px 16px rgba(0,0,0,0.4), 0 0 20px rgba(255,215,0,0.5)',
+              boxShadow: '4px 4px 8px rgba(0,0,0,0.5)',
               fontFamily: 'inherit',
               opacity: 0.95,
             }}
@@ -548,7 +577,10 @@ export function PreparePhaseScreen() {
                 style={{
                   width: 40,
                   height: 40,
-                  border: '1px solid #DAA520',
+                  borderTop: '1px solid #808080',
+                  borderLeft: '1px solid #808080',
+                  borderBottom: '1px solid #FFFFFF',
+                  borderRight: '1px solid #FFFFFF',
                   backgroundColor: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
@@ -559,10 +591,10 @@ export function PreparePhaseScreen() {
                 <img src={draggingSeasoning.iconUrl} alt={draggingSeasoning.name} style={{ width: 32, height: 32 }} draggable={false} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 'bold', color: '#8B4513', marginBottom: 2 }}>
+                <div style={{ fontSize: 10, fontWeight: 'bold', color: '#000080', marginBottom: 2 }}>
                   {draggingSeasoning.name}
                 </div>
-                <div style={{ fontSize: 8, color: '#666666' }}>
+                <div style={{ fontSize: 8, color: '#404040' }}>
                   {draggingSeasoning.description}
                 </div>
               </div>
@@ -572,10 +604,13 @@ export function PreparePhaseScreen() {
                 textAlign: 'center',
                 fontSize: 10,
                 fontWeight: 'bold',
-                color: '#8B4513',
+                color: '#000000',
                 padding: '3px 6px',
-                backgroundColor: '#FFE4B5',
-                border: '1px solid #DAA520',
+                backgroundColor: '#FFFFCC',
+                borderTop: '1px solid #808080',
+                borderLeft: '1px solid #808080',
+                borderBottom: '1px solid #FFFFFF',
+                borderRight: '1px solid #FFFFFF',
               }}
             >
               {draggingSeasoning.cost} LIT
