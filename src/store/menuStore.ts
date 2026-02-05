@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import type { MenuItem } from '../types';
+import type { AppliedSeasoning, SeasoningDefinition } from '../types/seasoning';
 import { useRestaurantStore } from './restaurantStore';
 import { MAX_MENU_SLOTS } from '../constants/game';
 import { getRandomMenuOptions } from '../data/menuPool';
+import { getSeasoningPool } from '../data/seasoningLoader';
 
 // メニュー選択で表示する選択肢の数
 const MENU_SELECT_COUNT = 3;
@@ -23,6 +25,15 @@ interface MenuState {
   // 選択中の新しいメニューID（入れ替えモード用）
   pendingMenuId: string | null;
 
+  // シーズニング（メニュー強化）
+  appliedSeasonings: Map<string, AppliedSeasoning>; // menuId -> AppliedSeasoning
+
+  // シーズニングのドラッグ&ドロップ状態（PreparePhaseScreenとStatusPanel間で共有）
+  draggingSeasoningId: string | null;
+  draggingSeasoningCost: number; // ドラッグ中のシーズニングのコスト
+  draggingSeasoningPosition: { x: number; y: number } | null; // ドラッグ中のマウス位置
+  dropTargetMenuId: string | null;
+
   // Actions
   addMenu: (menu: MenuItem) => void;
   removeMenu: (menuId: string) => void;
@@ -35,6 +46,19 @@ interface MenuState {
   cancelReplace: () => void; // 入れ替えをキャンセル
   startGame: () => void;
   increaseMaxMenuSlots: () => void; // メニュー枠を1増やす
+
+  // シーズニングアクション
+  applySeasoning: (menuId: string, seasoningId: string) => boolean; // 成功でtrue
+  getMenuSeasoning: (menuId: string) => AppliedSeasoning | null;
+  getSeasoningDefinition: (seasoningId: string) => SeasoningDefinition | null;
+  incrementStackCount: (menuId: string) => void; // stacking_bonus用
+  hasAnySeasoning: (menuId: string) => boolean; // メニューにシーズニングがあるか
+
+  // シーズニングのドラッグ&ドロップ
+  setDraggingSeasoningId: (id: string | null, cost?: number) => void;
+  setDraggingSeasoningPosition: (pos: { x: number; y: number } | null) => void;
+  setDropTargetMenuId: (id: string | null) => void;
+
   reset: () => void;
 }
 
@@ -47,6 +71,15 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   menuSelectOptions: [],
   isReplaceMode: false,
   pendingMenuId: null,
+
+  // シーズニング
+  appliedSeasonings: new Map<string, AppliedSeasoning>(),
+
+  // シーズニングのドラッグ&ドロップ状態
+  draggingSeasoningId: null,
+  draggingSeasoningCost: 0,
+  draggingSeasoningPosition: null,
+  dropTargetMenuId: null,
 
   addMenu: (menu: MenuItem) => {
     const { registeredMenus, maxMenuSlots } = get();
@@ -158,6 +191,79 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     set((state) => ({ maxMenuSlots: state.maxMenuSlots + 1 }));
   },
 
+  // シーズニングをメニューに適用（既存のシーズニングは上書き）
+  applySeasoning: (menuId: string, seasoningId: string) => {
+    const { appliedSeasonings, registeredMenus } = get();
+
+    // メニューが登録されているか確認
+    const menu = registeredMenus.find((m) => m.id === menuId);
+    if (!menu) return false;
+
+    // シーズニング定義が存在するか確認
+    const seasoningDef = getSeasoningPool().find((s) => s.id === seasoningId);
+    if (!seasoningDef) return false;
+
+    // 既存のシーズニングがあっても上書きする
+    const newAppliedSeasonings = new Map(appliedSeasonings);
+    newAppliedSeasonings.set(menuId, {
+      seasoningId,
+      menuId,
+      stackCount: 0,
+    });
+
+    set({ appliedSeasonings: newAppliedSeasonings });
+    return true;
+  },
+
+  // メニューのシーズニングを取得
+  getMenuSeasoning: (menuId: string) => {
+    const { appliedSeasonings } = get();
+    return appliedSeasonings.get(menuId) || null;
+  },
+
+  // シーズニング定義を取得
+  getSeasoningDefinition: (seasoningId: string) => {
+    return getSeasoningPool().find((s) => s.id === seasoningId) || null;
+  },
+
+  // スタックカウントを増やす（stacking_bonus用、購入時に呼ぶ）
+  incrementStackCount: (menuId: string) => {
+    const { appliedSeasonings } = get();
+    const seasoning = appliedSeasonings.get(menuId);
+    if (!seasoning) return;
+
+    const newAppliedSeasonings = new Map(appliedSeasonings);
+    newAppliedSeasonings.set(menuId, {
+      ...seasoning,
+      stackCount: seasoning.stackCount + 1,
+    });
+
+    set({ appliedSeasonings: newAppliedSeasonings });
+  },
+
+  // メニューにシーズニングがあるか
+  hasAnySeasoning: (menuId: string) => {
+    const { appliedSeasonings } = get();
+    return appliedSeasonings.has(menuId);
+  },
+
+  // シーズニングのドラッグ&ドロップ
+  setDraggingSeasoningId: (id: string | null, cost?: number) => {
+    set({
+      draggingSeasoningId: id,
+      draggingSeasoningCost: cost || 0,
+      draggingSeasoningPosition: null,
+    });
+  },
+
+  setDraggingSeasoningPosition: (pos: { x: number; y: number } | null) => {
+    set({ draggingSeasoningPosition: pos });
+  },
+
+  setDropTargetMenuId: (id: string | null) => {
+    set({ dropTargetMenuId: id });
+  },
+
   reset: () => {
     set({
       registeredMenus: [],
@@ -167,6 +273,11 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       menuSelectOptions: [],
       isReplaceMode: false,
       pendingMenuId: null,
+      appliedSeasonings: new Map<string, AppliedSeasoning>(),
+      draggingSeasoningId: null,
+      draggingSeasoningCost: 0,
+      draggingSeasoningPosition: null,
+      dropTargetMenuId: null,
     });
   },
 }));

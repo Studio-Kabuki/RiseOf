@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import type { StaffDefinition } from '../types/staffDefinition';
 import { useEntityStore } from './entityStore';
-import { INITIAL_STAFF_COUNT } from '../constants/game';
-
-const MAX_STAFF_SLOTS = 4;
+import { getManagerStaff, MANAGER_STAFF_ID } from '../data/staffLoader';
+import { MAX_STAFF_SLOTS } from '../constants/game';
 
 // セット割引/フルコースボーナスの定義
 export interface CategoryCountBonus {
@@ -25,6 +24,7 @@ interface StaffStoreState {
   categoryCountBonuses: CategoryCountBonus[]; // カテゴリ数ボーナス（set_bonus, full_course）
 
   // Actions
+  initializeManager: () => void; // 店長を初期化（CSV読み込み後に呼ぶ）
   hireStaff: (staff: StaffDefinition) => boolean;
   fireStaff: (staffId: string) => void;
   replaceStaff: (oldId: string, newStaff: StaffDefinition) => void;
@@ -112,8 +112,27 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   baseBonuses: {},
   categoryCountBonuses: [],
 
+  initializeManager: () => {
+    const { hiredStaff } = get();
+    // 既に店長がいる場合はスキップ
+    if (hiredStaff.some((s) => s.id === MANAGER_STAFF_ID)) return;
+
+    const manager = getManagerStaff();
+    if (!manager) {
+      console.warn('店長データが見つかりません。staffs.csvを確認してください。');
+      return;
+    }
+
+    const newHiredStaff = [manager, ...hiredStaff];
+    set({ hiredStaff: newHiredStaff });
+
+    // ゲーム内のスタッフエンティティも設定
+    useEntityStore.getState().setStaffCount(newHiredStaff.length);
+  },
+
   hireStaff: (staff: StaffDefinition) => {
     const { hiredStaff, maxStaffSlots } = get();
+    // スタッフの合計がスロット数を超えないようにする
     if (hiredStaff.length >= maxStaffSlots) return false;
     // 既に雇用済みなら追加しない
     if (hiredStaff.some((s) => s.id === staff.id)) return false;
@@ -126,14 +145,21 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       ...abilities,
     });
 
-    // ゲーム内のスタッフエンティティも追加（初期スタッフ + 雇用スタッフ）
-    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT + newHiredStaff.length);
+    // ゲーム内のスタッフエンティティも追加
+    useEntityStore.getState().setStaffCount(newHiredStaff.length);
 
     return true;
   },
 
   fireStaff: (staffId: string) => {
     const { hiredStaff } = get();
+    // shopExclude=trueのスタッフ（店長など）は解雇不可
+    const staffToFire = hiredStaff.find((s) => s.id === staffId);
+    if (staffToFire?.shopExclude) {
+      console.warn(`${staffToFire.name}は解雇できません`);
+      return;
+    }
+
     const newHiredStaff = hiredStaff.filter((s) => s.id !== staffId);
     const abilities = calculateAbilities(newHiredStaff);
 
@@ -142,8 +168,8 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       ...abilities,
     });
 
-    // ゲーム内のスタッフエンティティも削除（初期スタッフ + 雇用スタッフ）
-    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT + newHiredStaff.length);
+    // ゲーム内のスタッフエンティティも削除
+    useEntityStore.getState().setStaffCount(newHiredStaff.length);
   },
 
   replaceStaff: (oldId: string, newStaff: StaffDefinition) => {
@@ -185,8 +211,12 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   },
 
   reset: () => {
+    // 店長を取得（CSVが読み込まれている場合）
+    const manager = getManagerStaff();
+    const initialStaff = manager ? [manager] : [];
+
     set({
-      hiredStaff: [],
+      hiredStaff: initialStaff,
       maxStaffSlots: MAX_STAFF_SLOTS,
       cookingSpeedMultiplier: 1.0,
       customerSpeedMultiplier: 1.0,
@@ -195,6 +225,6 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       categoryCountBonuses: [],
     });
     // エンティティストアのスタッフ数も初期値にリセット
-    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT);
+    useEntityStore.getState().setStaffCount(initialStaff.length);
   },
 }));

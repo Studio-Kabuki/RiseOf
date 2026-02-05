@@ -47,7 +47,7 @@ export const STAFF_SPACING = 40;
 export const DAY_DURATION = 30;
 
 // お客さんスポーン間隔（秒）- UPGRADEABLE: 広告などで短縮可能
-export const CUSTOMER_SPAWN_DELAY = 1;
+export const CUSTOMER_SPAWN_DELAY = 3;
 
 // 着席から注文までの遅延（秒）
 export const ORDERING_DELAY = 0.5;
@@ -56,17 +56,17 @@ export const ORDERING_DELAY = 0.5;
 export const EATING_TIME = 2;
 
 // デフォルト調理時間（秒）
-export const COOKING_TIME = 1;
+export const COOKING_TIME = 2;
 
 // ------------------------------------------------------------
 // 移動速度設定 (px/秒)
 // ------------------------------------------------------------
 
 // お客さんの移動速度 - UPGRADEABLE: 椅子の快適さで変化?
-export const CUSTOMER_SPEED = 53; // 元80の2/3
+export const CUSTOMER_SPEED = 27; // 元53の1/2
 
 // 店員の移動速度 - UPGRADEABLE: 店員のレベルアップで向上
-export const STAFF_SPEED = 133; // 元200の2/3
+export const STAFF_SPEED = 67; // 元133の1/2
 
 // スタッフの調理時移動速度（キッチン内での動き）
 export const STAFF_COOKING_SPEED = 100;
@@ -140,13 +140,14 @@ export const SHOP_LINEUP_SIZE = 3;
 export const MAX_MENU_SLOTS = 4;
 
 // 店員スロット数の初期値 - アップグレードで増加
-export const MAX_STAFF_SLOTS = 2;
+export const MAX_STAFF_SLOTS = 3;
 
 // 座席数 - UPGRADEABLE: テーブル購入で増加
 export const SEAT_COUNT = 4;
 
-// 初期店員数（1人は最初から配置、能力なし）
-export const INITIAL_STAFF_COUNT = 1;
+// 初期店員数
+// @deprecated 店長が hiredStaff に含まれるようになったため、この値は使用しない
+export const INITIAL_STAFF_COUNT = 0;
 
 
 // ------------------------------------------------------------

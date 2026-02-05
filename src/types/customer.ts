@@ -1,6 +1,7 @@
 import type { Entity } from './entity';
 import type { Food } from './food';
 import type { Direction } from './table';
+import type { MenuCategory } from './menu';
 
 export type CustomerState =
   | 'waiting_outside' // 店外で待機中（満席時）
@@ -20,4 +21,5 @@ export interface Customer extends Entity {
   eatingProgress: number; // 0-1（食事進捗）
   direction?: Direction; // お客さんが向いている方向（配膳位置計算用）
   servingOffset?: number; // 配膳位置のオフセット（デフォルト1マス + この値）
+  preference: MenuCategory; // お客さんの好み（好みカテゴリで売上2倍）
 }

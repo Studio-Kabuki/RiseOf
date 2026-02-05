@@ -1,9 +1,10 @@
 // イベント効果の種類
 export type EventEffectType =
   | 'none'           // 効果なし
-  | 'priceBonus'     // カテゴリ別価格ボーナス
+  | 'priceBonus'     // カテゴリ別価格ボーナス（旧式、互換性のため残す）
   | 'salesMultiplier' // 特定メニューの売上倍率
-  | 'speedMultiplier'; // 移動速度倍率
+  | 'speedMultiplier' // 移動速度倍率
+  | 'preferenceBoost'; // カテゴリ好み確率ブースト（流行イベント）
 
 // イベント効果の対象
 export type EventEffectTarget =

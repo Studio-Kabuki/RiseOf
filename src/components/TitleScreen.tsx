@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { loadMenusFromCSV } from '../data/menuLoader';
 import { loadStaffsFromCSV } from '../data/staffLoader';
 import { loadEventsFromCSV } from '../data/eventLoader';
+import { loadSeasoningsFromCSV } from '../data/seasoningLoader';
+import { useStaffStore } from '../store/staffStore';
 import titleImage from '../assets/title.png';
 
 interface TitleScreenProps {
@@ -15,7 +17,9 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        await Promise.all([loadMenusFromCSV(), loadStaffsFromCSV(), loadEventsFromCSV()]);
+        await Promise.all([loadMenusFromCSV(), loadStaffsFromCSV(), loadEventsFromCSV(), loadSeasoningsFromCSV()]);
+        // CSV読み込み後に店長を初期化
+        useStaffStore.getState().initializeManager();
         setIsLoading(false);
       } catch (error) {
         setLoadError('データの読み込みに失敗しました');

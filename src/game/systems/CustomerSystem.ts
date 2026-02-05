@@ -45,6 +45,7 @@ export class CustomerSystem implements GameSystem {
           const salesContext = {
             registeredMenus,
             todayCustomerCount: todayCustomerCount + 1,
+            customerPreference: customer.preference, // お客さんの好み（好みカテゴリは2倍）
           };
 
           const salesResult = calculateSales(registeredMenus, salesContext);
@@ -288,13 +289,14 @@ export class CustomerSystem implements GameSystem {
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
     // 売上計算（特殊能力を考慮）
-    const { registeredMenus } = useMenuStore.getState();
+    const { registeredMenus, incrementStackCount, getMenuSeasoning, getSeasoningDefinition } = useMenuStore.getState();
     const { todayCustomerCount, addLit, addMoneyEffect } = useRestaurantStore.getState();
 
     // 今回の会計は todayCustomerCount + 1 人目（recordCustomerServed前なので）
     const salesContext = {
       registeredMenus,
       todayCustomerCount: todayCustomerCount + 1,
+      customerPreference: customer.preference, // お客さんの好み（好みカテゴリは2倍）
     };
 
     const salesResult = calculateSales(registeredMenus, salesContext);
@@ -302,6 +304,17 @@ export class CustomerSystem implements GameSystem {
     // お金を追加
     addMoney(salesResult.totalGold);
     recordCustomerServed(salesResult.totalGold);
+
+    // シーズニングのスタックカウントを増やす（stacking_bonus用）
+    for (const menu of registeredMenus) {
+      const appliedSeasoning = getMenuSeasoning(menu.id);
+      if (appliedSeasoning) {
+        const seasoningDef = getSeasoningDefinition(appliedSeasoning.seasoningId);
+        if (seasoningDef?.effectType === 'stacking_bonus') {
+          incrementStackCount(menu.id);
+        }
+      }
+    }
 
     // お金エフェクトを表示
     addMoneyEffect(salesResult.totalGold, customer.position.x, customer.position.y);

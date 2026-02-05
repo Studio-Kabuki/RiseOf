@@ -1,11 +1,33 @@
 import { create } from 'zustand';
 import type { Customer, Staff, Direction } from '../types';
+import type { MenuCategory } from '../types/menu';
 import {
   CUSTOMER_SPEED,
   STAFF_SPEED,
   ENTRANCE_POSITION,
   KITCHEN_POSITION,
 } from '../constants/game';
+import { useEventStore } from './eventStore';
+
+// ランダムな好みを生成（イベントの流行効果を考慮）
+const PREFERENCES: MenuCategory[] = ['snack', 'main', 'dessert'];
+const getRandomPreference = (): MenuCategory => {
+  const eventStore = useEventStore.getState();
+
+  // 各カテゴリの重みを計算（流行イベントで確率UP）
+  const weights = PREFERENCES.map(category => eventStore.getPreferenceBoost(category));
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+  // 重み付きランダム選択
+  let random = Math.random() * totalWeight;
+  for (let i = 0; i < PREFERENCES.length; i++) {
+    random -= weights[i];
+    if (random <= 0) {
+      return PREFERENCES[i];
+    }
+  }
+  return PREFERENCES[PREFERENCES.length - 1];
+};
 
 // 待機列の位置（店の外）
 const WAITING_LINE_START = { x: 100, y: 500 }; // 入口の下（画面外）
@@ -59,6 +81,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       eatingProgress: 0,
       direction, // 配膳位置計算用のお客さんの向き
       servingOffset, // 配膳位置のオフセット
+      preference: getRandomPreference(), // ランダムな好み
     };
     set((state) => ({
       customers: [...state.customers, customer],
@@ -78,6 +101,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       assignedSeatId: null,
       orderedFood: null,
       eatingProgress: 0,
+      preference: getRandomPreference(), // ランダムな好み
     };
     set((state) => ({
       customers: [...state.customers, customer],

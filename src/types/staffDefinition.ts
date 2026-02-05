@@ -20,4 +20,5 @@ export interface StaffDefinition {
   params: StaffParams;
   description: string;
   cost: number; // LITコスト
+  shopExclude?: boolean; // trueならショップに並ばない（店長など初期スタッフ用）
 }

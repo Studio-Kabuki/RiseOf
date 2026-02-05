@@ -1,8 +1,11 @@
 id,name,description,effectType,effectTarget,effectValue
 string,string,string,string,string,number
 none,平穏な一日,特に何も起こらない普通の日,none,,0
-snack_boom,スナックブーム,スナック +75G,priceBonus,snack,75
-main_festival,メイン料理祭,メイン +100G,priceBonus,main,100
-dessert_craze,デザートフェア,デザート +50G,priceBonus,dessert,50
+snack_trend,スナック流行中,スナック好きのお客さん ×2,preferenceBoost,snack,2
+snack_boom,スナック大流行！,スナック好きのお客さん ×5,preferenceBoost,snack,5
+main_trend,メイン流行中,メイン好きのお客さん ×2,preferenceBoost,main,2
+main_boom,メイン大流行！,メイン好きのお客さん ×5,preferenceBoost,main,5
+dessert_trend,デザート流行中,デザート好きのお客さん ×2,preferenceBoost,dessert,2
+dessert_boom,デザート大流行！,デザート好きのお客さん ×5,preferenceBoost,dessert,5
 meatloaf_day,ミートローフの日,ミートローフ売上 ×10,salesMultiplier,meatloaf,10
 rush_hour,ラッシュアワー,お客さん移動速度 ×2,speedMultiplier,customer,2

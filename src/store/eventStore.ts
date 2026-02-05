@@ -15,7 +15,7 @@ interface EventState {
   // 新しい日のイベントをランダムに選択
   selectRandomEvent: () => void;
 
-  // 現在のイベントがカテゴリに対して価格ボーナスを持つか
+  // 現在のイベントがカテゴリに対して価格ボーナスを持つか（旧式、互換性のため残す）
   getPriceBonus: (category: string) => number;
 
   // 特定メニューIDの売上倍率を取得
@@ -23,6 +23,9 @@ interface EventState {
 
   // お客さんの移動速度倍率を取得
   getCustomerSpeedMultiplier: () => number;
+
+  // カテゴリの好み確率ブーストを取得（流行イベント用）
+  getPreferenceBoost: (category: string) => number;
 
   // リセット
   reset: () => void;
@@ -69,6 +72,15 @@ export const useEventStore = create<EventState>((set, get) => ({
     const { currentEvent } = get();
     if (!currentEvent) return 1;
     if (currentEvent.effectType === 'speedMultiplier' && currentEvent.effectTarget === 'customer') {
+      return currentEvent.effectValue;
+    }
+    return 1;
+  },
+
+  getPreferenceBoost: (category: string) => {
+    const { currentEvent } = get();
+    if (!currentEvent) return 1;
+    if (currentEvent.effectType === 'preferenceBoost' && currentEvent.effectTarget === category) {
       return currentEvent.effectValue;
     }
     return 1;

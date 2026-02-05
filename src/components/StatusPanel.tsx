@@ -20,8 +20,28 @@ interface FanfareState {
 const FANFARE_GLOW_DURATION = 500;
 const FANFARE_STEP_DELAY = 200;
 const CARD_SIZE = 65; // カードサイズ（1.25倍）
-const CARD_OVERLAP = 15; // 重なり幅（1.25倍）
-const CARD_EFFECTIVE_WIDTH = CARD_SIZE - CARD_OVERLAP; // ドラッグ時の実効幅
+const CARD_GAP = 4; // 余裕がある時のカード間隔
+const MAX_CARD_OVERLAP = 30; // 最大重なり幅
+const CARD_EFFECTIVE_WIDTH = CARD_SIZE - 15; // ドラッグ時の実効幅（旧CARD_OVERLAP相当）
+
+// カード表示に必要な幅を計算（動的マージン対応）
+const calculateCardMargin = (containerWidth: number, cardCount: number, includeEmptySlot: boolean): number => {
+  if (cardCount <= 0) return 0;
+  const totalCards = includeEmptySlot ? cardCount + 1 : cardCount;
+  if (totalCards <= 1) return 0;
+
+  // 理想的な幅（ギャップ付き）
+  const idealWidth = totalCards * CARD_SIZE + (totalCards - 1) * CARD_GAP;
+
+  if (idealWidth <= containerWidth) {
+    // 余裕がある: ギャップ（正の間隔）
+    return CARD_GAP;
+  } else {
+    // 余裕がない: 重なり（負のマージン）を計算
+    const neededOverlap = (totalCards * CARD_SIZE - containerWidth) / (totalCards - 1);
+    return -Math.min(neededOverlap, MAX_CARD_OVERLAP);
+  }
+};
 
 // Windows 98 スタイルの3Dパネル
 const Panel3D = ({ children, inset = false, style = {}, onClick }: { children: React.ReactNode; inset?: boolean; style?: React.CSSProperties; onClick?: () => void }) => (
@@ -78,10 +98,12 @@ interface CardProps {
   name: string;
   subText?: string;
   category?: MenuCategory; // メニューカテゴリ（バッジ表示用）
+  seasoningIconUrl?: string; // シーズニングアイコン（適用済みの場合表示）
   isGlowing?: boolean;
   isHovered?: boolean;
   isDragging?: boolean;
   isSelected?: boolean;
+  isSeasoningDropTarget?: boolean; // シーズニングドロップのターゲット（光らせる）
   zIndex?: number;
   offsetX?: number; // ドラッグ中のスライドオフセット（横）
   offsetY?: number; // ドラッグ中のスライドオフセット（縦）
@@ -98,10 +120,12 @@ function Card({
   name,
   subText,
   category,
+  seasoningIconUrl,
   isGlowing,
   isHovered,
   isDragging,
   isSelected,
+  isSeasoningDropTarget,
   zIndex = 1,
   offsetX = 0,
   offsetY = 0,
@@ -116,9 +140,16 @@ function Card({
   const slideTransform = (offsetX !== 0 || offsetY !== 0) ? `translate(${offsetX}px, ${offsetY}px)` : '';
   const dragTransform = isDragging ? 'scale(1.1)' : '';
   const hoverTransform = isHovered && !isDragging ? 'translateY(-4px) scale(1.05)' : '';
-  const combinedTransform = [slideTransform, dragTransform, hoverTransform].filter(Boolean).join(' ') || 'none';
+  const seasoningTargetTransform = isSeasoningDropTarget ? 'scale(1.08)' : '';
+  const combinedTransform = [slideTransform, dragTransform, hoverTransform, seasoningTargetTransform].filter(Boolean).join(' ') || 'none';
 
   const categoryInfo = category ? CATEGORY_INFO[category] : null;
+
+  // シーズニングドロップターゲットのスタイル
+  const isSeasoningGlow = isSeasoningDropTarget || isGlowing;
+  const seasoningDropStyle = isSeasoningDropTarget ? {
+    boxShadow: '0 0 12px #FFD700, 0 0 24px rgba(255,215,0,0.5)',
+  } : {};
 
   return (
     <div
@@ -136,26 +167,54 @@ function Card({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: isGlowing ? '#FFFFC0' : '#FFFFFF',
-        borderTop: isGlowing ? '2px solid #FFD700' : '2px solid #FFFFFF',
-        borderLeft: isGlowing ? '2px solid #FFD700' : '2px solid #FFFFFF',
-        borderBottom: isGlowing ? '2px solid #B8860B' : '2px solid #808080',
-        borderRight: isGlowing ? '2px solid #B8860B' : '2px solid #808080',
+        backgroundColor: isSeasoningGlow ? '#FFFFC0' : '#FFFFFF',
+        borderTop: isSeasoningGlow ? '2px solid #FFD700' : '2px solid #FFFFFF',
+        borderLeft: isSeasoningGlow ? '2px solid #FFD700' : '2px solid #FFFFFF',
+        borderBottom: isSeasoningGlow ? '2px solid #B8860B' : '2px solid #808080',
+        borderRight: isSeasoningGlow ? '2px solid #B8860B' : '2px solid #808080',
         cursor: isDragging ? 'grabbing' : 'grab',
         transition: isDragging ? 'none' : 'transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease',
         transform: combinedTransform,
         boxShadow: isDragging ? '0 8px 16px rgba(0,0,0,0.4)' : isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
         zIndex: isDragging ? 200 : isHovered ? 100 : zIndex,
-        animation: isGlowing ? 'cardGlow 0.5s ease-in-out' : undefined,
+        animation: isSeasoningGlow && !isSeasoningDropTarget ? 'cardGlow 0.5s ease-in-out' : undefined,
         position: 'relative',
         userSelect: 'none',
         touchAction: 'none',
+        ...seasoningDropStyle,
         ...style,
       }}
     >
       {/* ホバー時またはタップ選択時のツールチップ（ドラッグ中は非表示） */}
       {(isHovered || isSelected) && !isDragging && tooltipContent && (
         <Win98Tooltip>{tooltipContent}</Win98Tooltip>
+      )}
+      {/* シーズニングアイコン（適用済みの場合、右上に表示） */}
+      {seasoningIconUrl && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            width: 20,
+            height: 20,
+            backgroundColor: '#FFF8E8',
+            border: '1px solid #DAA520',
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            pointerEvents: 'none',
+          }}
+        >
+          <img
+            src={seasoningIconUrl}
+            alt="seasoning"
+            style={{ width: 16, height: 16 }}
+            draggable={false}
+          />
+        </div>
       )}
       <img
         src={iconUrl}
@@ -261,9 +320,60 @@ function CollapseButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
 }
 
 export function StatusPanel() {
-  const { registeredMenus, maxMenuSlots, reorderMenus, removeMenu } = useMenuStore();
+  const {
+    registeredMenus,
+    maxMenuSlots,
+    reorderMenus,
+    removeMenu,
+    getMenuSeasoning,
+    getSeasoningDefinition,
+    appliedSeasonings, // スタックカウント変更でリアルタイム更新するため購読
+    draggingSeasoningId,
+    draggingSeasoningCost,
+    draggingSeasoningPosition,
+    dropTargetMenuId,
+    setDropTargetMenuId,
+    applySeasoning,
+  } = useMenuStore();
   const { hiredStaff, baseBonuses, categoryBonuses, maxStaffSlots, reorderStaff, fireStaff } = useStaffStore();
-  const { isOpen } = useRestaurantStore();
+  const { isOpen, lit, spendLit } = useRestaurantStore();
+
+  // メニューカードの要素を追跡（シーズニングドロップ判定用）
+  const menuCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // カードコンテナの幅を追跡（動的マージン計算用）
+  const staffContainerRef = useRef<HTMLDivElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+  const [staffContainerWidth, setStaffContainerWidth] = useState(0);
+  const [menuContainerWidth, setMenuContainerWidth] = useState(0);
+
+  // コンテナ幅の計測
+  useEffect(() => {
+    const measureWidths = () => {
+      if (staffContainerRef.current) {
+        setStaffContainerWidth(staffContainerRef.current.offsetWidth);
+      }
+      if (menuContainerRef.current) {
+        setMenuContainerWidth(menuContainerRef.current.offsetWidth);
+      }
+    };
+
+    measureWidths();
+
+    // リサイズ時にも計測
+    window.addEventListener('resize', measureWidths);
+    return () => window.removeEventListener('resize', measureWidths);
+  }, []);
+
+  // カード数が変わった時も再計測
+  useEffect(() => {
+    if (staffContainerRef.current) {
+      setStaffContainerWidth(staffContainerRef.current.offsetWidth);
+    }
+    if (menuContainerRef.current) {
+      setMenuContainerWidth(menuContainerRef.current.offsetWidth);
+    }
+  }, [hiredStaff.length, registeredMenus.length, maxStaffSlots, maxMenuSlots]);
 
   // 折りたたみ状態
   const [staffMenuCollapsed, setStaffMenuCollapsed] = useState(false);
@@ -312,6 +422,54 @@ export function StatusPanel() {
 
   const timeoutRef = useRef<number | null>(null);
   const prevIsOpen = useRef(isOpen);
+
+  // 前回のドラッグ状態を追跡（ドロップ判定用）
+  const prevDraggingSeasoningIdRef = useRef<string | null>(null);
+
+  // シーズニングドラッグ中のオーバーラップ検出
+  useEffect(() => {
+    if (!draggingSeasoningPosition || !draggingSeasoningId) {
+      // ドラッグ終了時にドロップ処理
+      if (prevDraggingSeasoningIdRef.current && dropTargetMenuId) {
+        // ドロップターゲットがあれば適用（既存シーズニングは上書き）
+        if (lit >= draggingSeasoningCost) {
+          spendLit(draggingSeasoningCost);
+          applySeasoning(dropTargetMenuId, prevDraggingSeasoningIdRef.current);
+        }
+        setDropTargetMenuId(null);
+      }
+      prevDraggingSeasoningIdRef.current = null;
+      return;
+    }
+
+    prevDraggingSeasoningIdRef.current = draggingSeasoningId;
+
+    // マウス位置と各メニューカードの重なりをチェック（シーズニング適用済みでもドロップ可能）
+    let foundTarget: string | null = null;
+    menuCardRefs.current.forEach((element, menuId) => {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      if (
+        draggingSeasoningPosition.x >= rect.left &&
+        draggingSeasoningPosition.x <= rect.right &&
+        draggingSeasoningPosition.y >= rect.top &&
+        draggingSeasoningPosition.y <= rect.bottom
+      ) {
+        foundTarget = menuId;
+      }
+    });
+
+    setDropTargetMenuId(foundTarget);
+  }, [
+    draggingSeasoningId,
+    draggingSeasoningPosition,
+    draggingSeasoningCost,
+    dropTargetMenuId,
+    lit,
+    applySeasoning,
+    spendLit,
+    setDropTargetMenuId,
+  ]);
 
   // 開店時にファンファーレを開始
   useEffect(() => {
@@ -406,21 +564,6 @@ export function StatusPanel() {
     };
   }, []);
 
-  const calculateTotal = useCallback(() => {
-    if (fanfare.phase === 'animating' || fanfare.phase === 'waiting') {
-      return fanfare.displayedTotal;
-    }
-    return registeredMenus.reduce((sum, menu) => {
-      const category = menu.category;
-      let price = menu.price;
-      if (category) {
-        price += baseBonuses[category] || 0;
-        price = Math.floor(price * (categoryBonuses[category] || 1));
-      }
-      return sum + price;
-    }, 0);
-  }, [fanfare.phase, fanfare.displayedTotal, registeredMenus, baseBonuses, categoryBonuses]);
-
   const getMenuDisplayPrice = useCallback((index: number) => {
     const menu = registeredMenus[index];
     if (!menu) return 0;
@@ -433,8 +576,49 @@ export function StatusPanel() {
       price += baseBonuses[category] || 0;
       price = Math.floor(price * (categoryBonuses[category] || 1));
     }
+
+    // シーズニング効果を適用
+    const appliedSeasoning = getMenuSeasoning(menu.id);
+    if (appliedSeasoning) {
+      const seasoningDef = getSeasoningDefinition(appliedSeasoning.seasoningId);
+      if (seasoningDef) {
+        switch (seasoningDef.effectType) {
+          case 'sales_multiplier': {
+            const multiplier = seasoningDef.params.multiplier || 1;
+            price = Math.floor(price * multiplier);
+            break;
+          }
+          case 'stacking_bonus': {
+            const stackValue = seasoningDef.params.stackValue || 0;
+            price += stackValue * appliedSeasoning.stackCount;
+            break;
+          }
+          case 'category_bonus': {
+            const multiplier = seasoningDef.params.multiplier || 1;
+            const categoryBonus = seasoningDef.params.categoryBonus as { category: string; extraMultiplier: number } | undefined;
+            if (categoryBonus && menu.category === categoryBonus.category) {
+              price = Math.floor(price * multiplier * categoryBonus.extraMultiplier);
+            } else {
+              price = Math.floor(price * multiplier);
+            }
+            break;
+          }
+          // all_categories は価格に影響しない
+        }
+      }
+    }
+
     return price;
-  }, [fanfare.phase, fanfare.menuBonuses, registeredMenus, baseBonuses, categoryBonuses]);
+  }, [fanfare.phase, fanfare.menuBonuses, registeredMenus, baseBonuses, categoryBonuses, getMenuSeasoning, getSeasoningDefinition, appliedSeasonings]);
+
+  const calculateTotal = useCallback(() => {
+    if (fanfare.phase === 'animating' || fanfare.phase === 'waiting') {
+      return fanfare.displayedTotal;
+    }
+    return registeredMenus.reduce((sum, _, index) => {
+      return sum + getMenuDisplayPrice(index);
+    }, 0);
+  }, [fanfare.phase, fanfare.displayedTotal, registeredMenus, getMenuDisplayPrice]);
 
   // マウスイベントベースのドラッグ＆ドロップ
   const handleMouseDown = useCallback((type: 'staff' | 'menu', index: number) => (e: React.MouseEvent) => {
@@ -618,58 +802,65 @@ export function StatusPanel() {
                   スタッフ
                 </span>
                 <div
+                  ref={staffContainerRef}
                   style={{
                     display: 'flex',
-                    paddingRight: CARD_OVERLAP,
+                    flex: 1,
                   }}
                 >
-                  {hiredStaff.map((staff, index) => {
-                    const isGlowing = fanfare.glowingStaffId === staff.id;
-                    const isDragging = dragState?.type === 'staff' && dragState.fromIndex === index;
-                    const isHovered = activeTooltip?.type === 'staff' && activeTooltip.id === staff.id && !isDragging;
-                    const { offsetX, offsetY } = getDisplayOrder('staff', index);
-                    return (
-                      <div
-                        key={staff.id}
-                        style={{
-                          marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                          zIndex: isDragging ? 200 : isHovered ? 100 : hiredStaff.length - index,
-                          transition: isDragging ? 'none' : 'transform 0.15s ease',
-                        }}
-                      >
-                        <Card
-                          iconUrl={staff.iconUrl}
-                          name={staff.name}
-                          isGlowing={isGlowing}
-                          isHovered={isHovered}
-                          isDragging={isDragging}
-                          isSelected={selectedStaffId === staff.id}
-                          offsetX={offsetX}
-                          offsetY={offsetY}
-                          onMouseDown={handleMouseDown('staff', index)}
-                          onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
-                          onMouseLeave={() => setActiveTooltip(null)}
-                          onClick={() => {
-                            if (!dragState && !justDraggedRef.current) {
-                              setSelectedStaffId(prev => prev === staff.id ? null : staff.id);
-                              setSelectedMenuIndex(null);
-                            }
+                  {(() => {
+                    // 雇用可能なスロット数（デフォルトスタッフは含まない）
+                    // 店長がhiredStaffに含まれるので、全スロット数をそのまま使用
+                    const hireableSlots = maxStaffSlots;
+                    const staffMargin = calculateCardMargin(staffContainerWidth, hireableSlots, false);
+                    return Array.from({ length: hireableSlots }).map((_, index) => {
+                      const staff = hiredStaff[index];
+                      const isGlowing = staff && fanfare.glowingStaffId === staff.id;
+                      const isDragging = staff && dragState?.type === 'staff' && dragState.fromIndex === index;
+                      const isHovered = staff && activeTooltip?.type === 'staff' && activeTooltip.id === staff.id && !isDragging;
+                      const { offsetX, offsetY } = staff ? getDisplayOrder('staff', index) : { offsetX: 0, offsetY: 0 };
+                      return (
+                        <div
+                          key={staff?.id ?? `empty-staff-${index}`}
+                          style={{
+                            marginLeft: index === 0 ? 0 : staffMargin,
+                            zIndex: isDragging ? 200 : isHovered ? 100 : hireableSlots - index,
+                            transition: isDragging ? 'none' : 'transform 0.15s ease, margin-left 0.15s ease',
                           }}
-                          tooltipContent={
-                            <div>
-                              <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{staff.name}</div>
-                              <div style={{ color: '#006600' }}>{staff.description}</div>
-                            </div>
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                  {hiredStaff.length < maxStaffSlots && (
-                    <div style={{ marginLeft: hiredStaff.length === 0 ? 0 : -CARD_OVERLAP }}>
-                      <EmptyCard />
-                    </div>
-                  )}
+                        >
+                          {staff ? (
+                            <Card
+                              iconUrl={staff.iconUrl}
+                              name={staff.name}
+                              isGlowing={isGlowing}
+                              isHovered={isHovered}
+                              isDragging={isDragging}
+                              isSelected={selectedStaffId === staff.id}
+                              offsetX={offsetX}
+                              offsetY={offsetY}
+                              onMouseDown={handleMouseDown('staff', index)}
+                              onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
+                              onMouseLeave={() => setActiveTooltip(null)}
+                              onClick={() => {
+                                if (!dragState && !justDraggedRef.current) {
+                                  setSelectedStaffId(prev => prev === staff.id ? null : staff.id);
+                                  setSelectedMenuIndex(null);
+                                }
+                              }}
+                              tooltipContent={
+                                <div>
+                                  <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{staff.name}</div>
+                                  <div style={{ color: '#006600' }}>{staff.description}</div>
+                                </div>
+                              }
+                            />
+                          ) : (
+                            <EmptyCard />
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 
@@ -679,26 +870,42 @@ export function StatusPanel() {
                   メニュー
                 </span>
                 <div
+                  ref={menuContainerRef}
                   style={{
                     display: 'flex',
-                    paddingRight: CARD_OVERLAP,
+                    flex: 1,
                   }}
                 >
-                  {Array.from({ length: maxMenuSlots }).map((_, index) => {
+                  {(() => {
+                    const menuMargin = calculateCardMargin(menuContainerWidth, maxMenuSlots, false);
+                    return Array.from({ length: maxMenuSlots }).map((_, index) => {
                     const menu = registeredMenus[index];
                     const isGlowing = fanfare.glowingMenuIndex === index;
                     const isDragging = dragState?.type === 'menu' && dragState.fromIndex === index;
                     const isHovered = activeTooltip?.type === 'menu' && activeTooltip.index === index && !isDragging;
                     const displayPrice = getMenuDisplayPrice(index);
                     const { offsetX, offsetY } = menu ? getDisplayOrder('menu', index) : { offsetX: 0, offsetY: 0 };
+                    // シーズニングドロップターゲットかどうか
+                    const isSeasoningDropTarget = menu && dropTargetMenuId === menu.id;
+                    // シーズニングアイコン取得
+                    const appliedSeasoning = menu ? getMenuSeasoning(menu.id) : null;
+                    const seasoningDef = appliedSeasoning ? getSeasoningDefinition(appliedSeasoning.seasoningId) : null;
 
                     return (
                       <div
                         key={menu?.id ?? `empty-${index}`}
+                        ref={(el) => {
+                          // メニューカードの要素を追跡（シーズニングドロップ判定用）
+                          if (menu && el) {
+                            menuCardRefs.current.set(menu.id, el);
+                          } else if (menu) {
+                            menuCardRefs.current.delete(menu.id);
+                          }
+                        }}
                         style={{
-                          marginLeft: index === 0 ? 0 : -CARD_OVERLAP,
-                          zIndex: isDragging ? 200 : isHovered ? 100 : maxMenuSlots - index,
-                          transition: isDragging ? 'none' : 'transform 0.15s ease',
+                          marginLeft: index === 0 ? 0 : menuMargin,
+                          zIndex: isDragging ? 200 : isSeasoningDropTarget ? 150 : isHovered ? 100 : maxMenuSlots - index,
+                          transition: isDragging ? 'none' : 'transform 0.15s ease, margin-left 0.15s ease',
                         }}
                       >
                         {menu ? (
@@ -707,10 +914,12 @@ export function StatusPanel() {
                             name={menu.name}
                             subText={`${displayPrice}`}
                             category={menu.category}
+                            seasoningIconUrl={seasoningDef?.iconUrl}
                             isGlowing={isGlowing}
                             isHovered={isHovered}
                             isDragging={isDragging}
                             isSelected={selectedMenuIndex === index}
+                            isSeasoningDropTarget={isSeasoningDropTarget}
                             offsetX={offsetX}
                             offsetY={offsetY}
                             onMouseDown={handleMouseDown('menu', index)}
@@ -722,31 +931,51 @@ export function StatusPanel() {
                                 setSelectedStaffId(null);
                               }
                             }}
-                            tooltipContent={
-                              <div>
-                                <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{menu.name}</div>
-                                <div>基本価格: {menu.price}円</div>
-                                {displayPrice !== menu.price && (
-                                  <div style={{ color: '#006600', fontWeight: 'bold' }}>
-                                    ボーナス後: {displayPrice}円
-                                  </div>
-                                )}
-                                {menu.description && (
-                                  <div style={{ marginTop: 4, color: '#666666' }}>
-                                    {menu.description.split('\\n').map((line, i) => (
-                                      <div key={i}>{line}</div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            }
+                            tooltipContent={(() => {
+                              const appliedSeasoning = getMenuSeasoning(menu.id);
+                              const seasoningDef = appliedSeasoning ? getSeasoningDefinition(appliedSeasoning.seasoningId) : null;
+                              return (
+                                <div>
+                                  <div style={{ fontWeight: 'bold', marginBottom: 2 }}>{menu.name}</div>
+                                  <div>基本価格: {menu.price}G</div>
+                                  {displayPrice !== menu.price && (
+                                    <div style={{ color: '#006600', fontWeight: 'bold' }}>
+                                      ボーナス後: {displayPrice}G
+                                    </div>
+                                  )}
+                                  {seasoningDef && (
+                                    <div style={{ marginTop: 4, padding: '3px 6px', backgroundColor: '#FFF8E8', border: '1px solid #DAA520' }}>
+                                      <div style={{ color: '#8B4513', fontWeight: 'bold', fontSize: 10 }}>
+                                        🧂 {seasoningDef.name}
+                                      </div>
+                                      <div style={{ fontSize: 9, color: '#666666' }}>
+                                        {seasoningDef.description}
+                                      </div>
+                                      {appliedSeasoning && appliedSeasoning.stackCount > 0 && (
+                                        <div style={{ fontSize: 9, color: '#CC6600' }}>
+                                          スタック: {appliedSeasoning.stackCount}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {menu.description && (
+                                    <div style={{ marginTop: 4, color: '#666666' }}>
+                                      {menu.description.split('\\n').map((line, i) => (
+                                        <div key={i}>{line}</div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           />
                         ) : (
                           <EmptyCard />
                         )}
                       </div>
                     );
-                  })}
+                  });
+                  })()}
                 </div>
               </div>
             </>

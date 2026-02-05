@@ -4,11 +4,13 @@ import { useMenuStore } from '../store/menuStore';
 import { useStaffStore } from '../store/staffStore';
 import { useRestaurantStore } from '../store/restaurantStore';
 import { getRandomMenuOptions } from '../data/menuPool';
+import { getRandomSeasoningOptions } from '../data/seasoningLoader';
 import type { MenuItem } from '../types';
 import type { StaffDefinition } from '../types/staffDefinition';
+import type { SeasoningDefinition } from '../types/seasoning';
 import { CATEGORY_INFO } from '../types/menu';
 
-type ScreenPhase = 'menu' | 'staff';
+type ScreenPhase = 'menu' | 'shop';
 
 // 履歴書風カード（スタッフ用）
 function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition; disabled?: boolean; onClick?: () => void }) {
@@ -20,10 +22,10 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        width: 140,
+        width: 130,
         backgroundColor: disabled ? '#E0E0E0' : '#FFFFF8',
         border: '1px solid #000000',
-        padding: 8,
+        padding: 6,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
@@ -32,25 +34,26 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
         fontFamily: 'inherit',
       }}
     >
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
         <div
           style={{
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             border: '1px solid #808080',
             backgroundColor: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          <img src={staff.iconUrl} alt={staff.name} style={{ width: 40, height: 40 }} draggable={false} />
+          <img src={staff.iconUrl} alt={staff.name} style={{ width: 32, height: 32 }} draggable={false} />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 'bold', color: '#000080', marginBottom: 2 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 'bold', color: '#000080', marginBottom: 2 }}>
             {staff.name}
           </div>
-          <div style={{ fontSize: 9, color: '#666666' }}>
+          <div style={{ fontSize: 8, color: '#666666' }}>
             {staff.description}
           </div>
         </div>
@@ -59,14 +62,14 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
         disabled={disabled}
         style={{
           width: '100%',
-          padding: '4px 8px',
+          padding: '3px 6px',
           backgroundColor: disabled ? '#A0A0A0' : '#90EE90',
           borderTop: '2px solid #FFFFFF',
           borderLeft: '2px solid #FFFFFF',
           borderBottom: '2px solid #404040',
           borderRight: '2px solid #404040',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 'bold',
           fontFamily: 'inherit',
         }}
@@ -168,6 +171,86 @@ function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => voi
   );
 }
 
+// シーズニングカード（マウスイベントベースのドラッグ）
+function DraggableSeasoningCard({
+  seasoning,
+  disabled,
+  isDragging,
+  onMouseDown,
+}: {
+  seasoning: SeasoningDefinition;
+  disabled?: boolean;
+  isDragging?: boolean;
+  onMouseDown: (e: React.MouseEvent, seasoningId: string, cost: number) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    onMouseDown(e, seasoning.id, seasoning.cost);
+  };
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        width: 130,
+        backgroundColor: disabled ? '#E0E0E0' : '#FFF8E8',
+        border: '2px solid #DAA520',
+        padding: 6,
+        cursor: disabled ? 'not-allowed' : isDragging ? 'grabbing' : 'grab',
+        opacity: isDragging ? 0.5 : disabled ? 0.6 : 1,
+        transition: isDragging ? 'none' : 'transform 0.15s ease, box-shadow 0.15s ease',
+        transform: isHovered && !disabled && !isDragging ? 'translateY(-4px)' : 'none',
+        boxShadow: isHovered && !disabled ? '0 4px 8px rgba(0,0,0,0.3)' : '1px 1px 2px rgba(0,0,0,0.2)',
+        fontFamily: 'inherit',
+        userSelect: 'none',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            border: '1px solid #DAA520',
+            backgroundColor: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <img src={seasoning.iconUrl} alt={seasoning.name} style={{ width: 32, height: 32 }} draggable={false} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 'bold', color: '#8B4513', marginBottom: 2 }}>
+            {seasoning.name}
+          </div>
+          <div style={{ fontSize: 8, color: '#666666' }}>
+            {seasoning.description}
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          textAlign: 'center',
+          fontSize: 10,
+          fontWeight: 'bold',
+          color: disabled ? '#808080' : '#8B4513',
+          padding: '3px 6px',
+          backgroundColor: disabled ? '#D0D0D0' : '#FFE4B5',
+          border: '1px solid #DAA520',
+        }}
+      >
+        {disabled ? '購入不可' : `${seasoning.cost} LIT`}
+      </div>
+    </div>
+  );
+}
+
 // 90年代風ボタン
 function RetroButton({ children, onClick, disabled, color }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; color?: string }) {
   return (
@@ -196,10 +279,18 @@ export function PreparePhaseScreen() {
   const { openStore, lit } = useRestaurantStore();
   const { lineup, purchaseStaff, isSoldOut, refreshLineup, reroll, getRerollCost } = useShopStore();
   const { hiredStaff, maxStaffSlots } = useStaffStore();
-  const { registeredMenus, addMenu, removeMenu } = useMenuStore();
+  const {
+    registeredMenus,
+    addMenu,
+    draggingSeasoningId,
+    draggingSeasoningPosition,
+    setDraggingSeasoningId,
+    setDraggingSeasoningPosition,
+  } = useMenuStore();
 
-  const [phase, setPhase] = useState<ScreenPhase>('menu'); // メニュー選択から開始
+  const [phase, setPhase] = useState<ScreenPhase>('menu');
   const [menuOptions, setMenuOptions] = useState<MenuItem[]>([]);
+  const [seasoningOptions, setSeasoningOptions] = useState<SeasoningDefinition[]>([]);
 
   useEffect(() => {
     const excludeIds = registeredMenus.map((m) => m.id);
@@ -212,17 +303,51 @@ export function PreparePhaseScreen() {
     }
   }, [lineup.length, refreshLineup]);
 
+  // ショップ画面に入る時にシーズニングオプションを生成
+  useEffect(() => {
+    if (phase === 'shop') {
+      setSeasoningOptions(getRandomSeasoningOptions(3));
+    }
+  }, [phase]);
+
+  // シーズニングドラッグ中のマウス移動を追跡
+  useEffect(() => {
+    if (!draggingSeasoningId) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setDraggingSeasoningPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseUp = () => {
+      // ドロップ処理はStatusPanel側で行う（位置ベースで判定）
+      // ここではドラッグ状態をリセット
+      setDraggingSeasoningId(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingSeasoningId, setDraggingSeasoningId, setDraggingSeasoningPosition]);
+
   const handleMenuSelect = (menu: MenuItem) => {
-    // 既存のメニューをクリアして新しいのを追加
-    registeredMenus.forEach((m) => removeMenu(m.id));
+    // 新しいメニューを追加（既存メニューは保持）
     addMenu(menu);
-    // スタッフ選択画面へ
-    setPhase('staff');
+    // ショップ画面へ
+    setPhase('shop');
   };
 
   const handleSkipMenu = () => {
-    // スタッフ選択画面へ（メニューなしで）
-    setPhase('staff');
+    setPhase('shop');
+  };
+
+  // シーズニングのマウスダウンハンドラー
+  const handleSeasoningMouseDown = (e: React.MouseEvent, seasoningId: string, cost: number) => {
+    setDraggingSeasoningId(seasoningId, cost);
+    setDraggingSeasoningPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleOpenStore = () => {
@@ -251,6 +376,7 @@ export function PreparePhaseScreen() {
         fontFamily: 'inherit',
         backgroundColor: '#FFFEF0',
         padding: 16,
+        overflow: 'auto',
       }}
     >
       {phase === 'menu' ? (
@@ -287,56 +413,176 @@ export function PreparePhaseScreen() {
           </div>
         </div>
       ) : (
-        /* 求人画面 */
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{
-            backgroundColor: '#000080',
-            color: '#FFFFFF',
-            padding: '12px 24px',
-            marginBottom: 8,
-            fontWeight: 'bold',
-          }}>
-            *** 応募がありました！ ***
-          </h2>
+        /* ショップ画面（スタッフ + シーズニング） */
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          height: '100%',
+          maxWidth: 700,
+        }}>
+          {/* メインコンテンツ */}
+          <div style={{ flex: 1, textAlign: 'center', overflow: 'auto', paddingBottom: 120 }}>
+            <h2 style={{
+              backgroundColor: '#4B0082',
+              color: '#FFFFFF',
+              padding: '10px 20px',
+              marginBottom: 8,
+              fontWeight: 'bold',
+              fontSize: 16,
+            }}>
+              *** ショップ ***
+            </h2>
 
-          <div style={{ marginBottom: 16, fontSize: 12, color: '#666666' }}>
-            ({hiredStaff.length}/{maxStaffSlots}人) | 所持金: <span style={{ color: '#CC0000', fontWeight: 'bold' }}>{lit} LIT</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 16 }}>
-            {lineup.map((staff) => {
-              const soldOut = isSoldOut(staff.id);
-              const canAfford = lit >= staff.cost && hiredStaff.length < maxStaffSlots;
-              return (
-                <StaffResumeCard
-                  key={staff.id}
-                  staff={staff}
-                  disabled={soldOut || !canAfford}
-                  onClick={() => handleHire(staff.id)}
-                />
-              );
-            })}
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <RetroButton onClick={() => reroll()} disabled={!canReroll}>
-              別の応募者を見る ({rerollCost} LIT)
-            </RetroButton>
-          </div>
-
-          {hiredStaff.length >= maxStaffSlots && (
-            <div style={{ marginBottom: 16, fontSize: 11, color: '#CC0000' }}>
-              * 募集枠がいっぱいです
+            <div style={{ marginBottom: 12, fontSize: 12, color: '#666666' }}>
+              所持金: <span style={{ color: '#CC0000', fontWeight: 'bold' }}>{lit} LIT</span>
+              {' | '}
+              スタッフ: {hiredStaff.length}/{maxStaffSlots}人
             </div>
-          )}
 
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <RetroButton onClick={handleOpenStore} color="#90EE90">
-              開店する
-            </RetroButton>
+            {/* シーズニングセクション（メニューがあれば常に表示） */}
+            {registeredMenus.length > 0 && (
+              <>
+                <div style={{
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: '#8B4513',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                }}>
+                  🧂 シーズニング（下のメニューにドラッグ&ドロップ！）
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                  {seasoningOptions.map((seasoning) => {
+                    const canAfford = lit >= seasoning.cost;
+                    return (
+                      <DraggableSeasoningCard
+                        key={seasoning.id}
+                        seasoning={seasoning}
+                        disabled={!canAfford}
+                        isDragging={draggingSeasoningId === seasoning.id}
+                        onMouseDown={handleSeasoningMouseDown}
+                      />
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* スタッフセクション */}
+            <div style={{
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: '#000080',
+              marginBottom: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+            }}>
+              👥 スタッフ募集
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+              {lineup.map((staff) => {
+                const soldOut = isSoldOut(staff.id);
+                const canAfford = lit >= staff.cost && hiredStaff.length < maxStaffSlots;
+                return (
+                  <StaffResumeCard
+                    key={staff.id}
+                    staff={staff}
+                    disabled={soldOut || !canAfford}
+                    onClick={() => handleHire(staff.id)}
+                  />
+                );
+              })}
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <RetroButton onClick={() => reroll()} disabled={!canReroll}>
+                別の応募者を見る ({rerollCost} LIT)
+              </RetroButton>
+            </div>
+
+            {hiredStaff.length >= maxStaffSlots && (
+              <div style={{ marginBottom: 12, fontSize: 10, color: '#CC0000' }}>
+                * 募集枠がいっぱいです
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+              <RetroButton onClick={handleOpenStore} color="#90EE90">
+                開店する
+              </RetroButton>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ドラッグ中のシーズニングゴースト */}
+      {draggingSeasoningId && draggingSeasoningPosition && (() => {
+        const draggingSeasoning = seasoningOptions.find(s => s.id === draggingSeasoningId);
+        if (!draggingSeasoning) return null;
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: draggingSeasoningPosition.x,
+              top: draggingSeasoningPosition.y,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 1000,
+              width: 130,
+              backgroundColor: '#FFF8E8',
+              border: '2px solid #FFD700',
+              padding: 6,
+              boxShadow: '0 8px 16px rgba(0,0,0,0.4), 0 0 20px rgba(255,215,0,0.5)',
+              fontFamily: 'inherit',
+              opacity: 0.95,
+            }}
+          >
+            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  border: '1px solid #DAA520',
+                  backgroundColor: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <img src={draggingSeasoning.iconUrl} alt={draggingSeasoning.name} style={{ width: 32, height: 32 }} draggable={false} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 'bold', color: '#8B4513', marginBottom: 2 }}>
+                  {draggingSeasoning.name}
+                </div>
+                <div style={{ fontSize: 8, color: '#666666' }}>
+                  {draggingSeasoning.description}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: 10,
+                fontWeight: 'bold',
+                color: '#8B4513',
+                padding: '3px 6px',
+                backgroundColor: '#FFE4B5',
+                border: '1px solid #DAA520',
+              }}
+            >
+              {draggingSeasoning.cost} LIT
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -17,3 +17,9 @@ export type {
   EventEffectType,
   EventEffectTarget,
 } from './event';
+export type {
+  SeasoningDefinition,
+  SeasoningEffectType,
+  SeasoningParams,
+  AppliedSeasoning,
+} from './seasoning';

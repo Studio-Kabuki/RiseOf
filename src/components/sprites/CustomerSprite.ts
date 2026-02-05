@@ -1,6 +1,14 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { Customer } from '../../types';
+import type { MenuCategory } from '../../types/menu';
 import { ICONS } from '../../constants/game';
+
+// 好みに応じたお客さんの色
+const PREFERENCE_COLORS: Record<MenuCategory, number> = {
+  snack: 0xFFA726,   // オレンジ（スナック）
+  main: 0xEF5350,    // 赤（メイン）
+  dessert: 0xAB47BC, // 紫（デザート）
+};
 
 export class CustomerSprite extends Container {
   private body: Graphics;
@@ -8,13 +16,14 @@ export class CustomerSprite extends Container {
   private bubbleIcon: Sprite | null = null;
   private currentMenuIconUrl: string | null = null;
   private progressBar: Graphics | null = null;
+  private currentPreference: MenuCategory | null = null;
 
   constructor() {
     super();
 
     // 人型スプライト（シンプルな円）
     this.body = new Graphics();
-    this.drawBody(0x4a90d9); // 青色
+    this.drawBody(0x4a90d9); // デフォルト青色
     this.addChild(this.body);
   }
 
@@ -32,6 +41,13 @@ export class CustomerSprite extends Container {
     // 位置更新
     this.x = customer.position.x;
     this.y = customer.position.y;
+
+    // 好みに応じた色を更新
+    if (this.currentPreference !== customer.preference) {
+      this.currentPreference = customer.preference;
+      const color = PREFERENCE_COLORS[customer.preference] || 0x4a90d9;
+      this.drawBody(color);
+    }
 
     // 状態に応じた表示
     this.updateBubble(customer);
