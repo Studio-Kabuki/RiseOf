@@ -1,5 +1,4 @@
-import type { MenuItem, MenuParams, AbilityType } from '../types';
-import { parseParams } from '../utils/csvParser';
+import type { MenuItem, MenuCategory } from '../types';
 
 // CSVをパースしてMenuItemの配列を返す
 function parseMenuCSV(csvText: string): MenuItem[] {
@@ -14,13 +13,12 @@ function parseMenuCSV(csvText: string): MenuItem[] {
     const values = lines[i].split(',');
     if (values.length < headers.length) continue;
 
-    // ability列（6番目の列、インデックス5）
-    const abilityValue = values[5]?.trim() || 'none';
-    const ability = abilityValue as AbilityType;
+    // category列（6番目の列、インデックス5）
+    const categoryValue = values[5]?.trim() || 'main';
+    const category = categoryValue as MenuCategory;
 
-    // params列をパース（7番目の列、インデックス6）
-    const paramsValue = values[6]?.trim() || '';
-    const params: MenuParams = parseParams(paramsValue);
+    // hiddenCategory列（7番目の列、インデックス6）
+    const hiddenCategory = values[6]?.trim() || undefined;
 
     // description列（8番目の列、インデックス7）- \nを改行に変換
     const descriptionRaw = values[7]?.trim() || '';
@@ -32,8 +30,8 @@ function parseMenuCSV(csvText: string): MenuItem[] {
       price: parseInt(values[2], 10),
       cookingTime: parseInt(values[3], 10),
       iconUrl: values[4],
-      ability: ability !== 'none' ? ability : undefined,
-      params: Object.keys(params).length > 0 ? params : undefined,
+      category,
+      hiddenCategory: hiddenCategory || undefined,
       description: description || undefined,
     };
     menus.push(menu);

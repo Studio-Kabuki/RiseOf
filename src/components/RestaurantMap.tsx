@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Application, Assets, Container, Graphics } from 'pixi.js';
+import { useEffect, useRef, useState } from 'react';
+import { Application, Assets, Container, Graphics, TextureSource } from 'pixi.js';
 import { GameEngine } from '../game';
 import { useEntityStore, useRestaurantStore } from '../store';
 import {
@@ -12,6 +12,8 @@ import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
 import { parseTmxFile, initCollisionFromTmx } from '../utils/tmxParser';
 import { parseTmxForRendering, loadTilesetTextures, renderTmxMap } from '../utils/tmxRenderer';
 import { getGridInfo, onDebugCollisionChange, isDebugCollisionVisible } from '../utils/pathfinding';
+import { usePostEffects } from '../hooks/usePostEffects';
+import { PostEffectDebugPanel } from './ui/PostEffectDebugPanel';
 
 // カメラ制御の定数
 const MIN_ZOOM = 0.3; // より広い視野でズームアウト可能
@@ -23,6 +25,10 @@ export function RestaurantMap() {
   const appRef = useRef<Application | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const initializedRef = useRef(false);
+
+  // ポストエフェクト用のアプリ状態（フック用）
+  const [pixiApp, setPixiApp] = useState<Application | null>(null);
+  const postEffects = usePostEffects(pixiApp);
 
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
@@ -122,6 +128,9 @@ export function RestaurantMap() {
     initializedRef.current = true;
     let destroyed = false;
 
+    // ドット絵をシャープに表示するため、テクスチャ補間を無効化
+    TextureSource.defaultOptions.scaleMode = 'nearest';
+
     const app = new Application();
     appRef.current = app;
 
@@ -130,9 +139,9 @@ export function RestaurantMap() {
         await app.init({
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
-          backgroundColor: 0xffffff, // 真っ白
-          resolution: window.devicePixelRatio || 1,
-          autoDensity: true,
+          backgroundColor: 0xffffff,
+          resolution: 1, // ピクセル等倍（ボケ防止）
+          autoDensity: false,
         });
 
         // 初期化中にアンマウントされた場合
@@ -489,6 +498,9 @@ export function RestaurantMap() {
         engine.start();
         engineRef.current = engine;
 
+        // ポストエフェクト用にアプリ状態を更新
+        setPixiApp(app);
+
         // 初期スタッフを追加（まだいない場合のみ）
         // スタッフは調理と配膳の両方を担当（CookとStaffを統合）
         if (useEntityStore.getState().staff.length === 0) {
@@ -548,15 +560,25 @@ export function RestaurantMap() {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        border: '2px solid #333',
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    />
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+          border: '2px solid #333',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      />
+      {/* ポストエフェクトデバッグパネル */}
+      <PostEffectDebugPanel
+        state={postEffects.state}
+        toggleFilter={postEffects.toggleFilter}
+        updateParam={postEffects.updateParam}
+        resetAll={postEffects.resetAll}
+        disableAll={postEffects.disableAll}
+      />
+    </>
   );
 }

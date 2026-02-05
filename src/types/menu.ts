@@ -1,13 +1,12 @@
-// 特殊能力の種類
-export type AbilityType =
-  | 'none'           // 能力なし（ミラノ風ドリア）
-  | 'pizza_synergy'  // ピザカテゴリのシナジー（ソーセージピッツァ）
-  | 'per_customer'   // 提供人数ごとに増加（イタリアンプリン）
-  | 'lit_chance'     // 確率でLIT獲得（辛辛チキン）
-  | 'eating_time';   // 食事時間を変更（エビのサラダ、デキャンタ大）
+// メニューカテゴリの種類
+export type MenuCategory = 'snack' | 'main' | 'dessert';
 
-// メニューパラメータの型定義（可変長引数用）
-export type MenuParams = Record<string, string | number>;
+// カテゴリの表示情報
+export const CATEGORY_INFO: Record<MenuCategory, { label: string; color: string; icon: string }> = {
+  snack: { label: 'スナック', color: '#FFA726', icon: '🍟' },
+  main: { label: 'メイン', color: '#EF5350', icon: '🍖' },
+  dessert: { label: 'デザート', color: '#AB47BC', icon: '🍨' },
+};
 
 // メニューアイテムの型定義
 export interface MenuItem {
@@ -16,9 +15,9 @@ export interface MenuItem {
   price: number;
   cookingTime: number; // 調理時間（秒）- 廃止予定
   iconUrl: string;
-  ability?: AbilityType;  // 特殊能力の種類
-  params?: MenuParams;    // 可変長パラメータ（例: { value: 30, multiplier: 20 }）
-  description?: string;   // 能力の説明（\nで改行対応）
+  category: MenuCategory;       // メインカテゴリ（スナック・メイン・デザート）
+  hiddenCategory?: string;      // 隠しカテゴリ（将来のシナジー用）
+  description?: string;         // メニューの説明
 }
 
 // メニューの状態

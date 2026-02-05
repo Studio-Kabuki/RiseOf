@@ -1,4 +1,4 @@
-import type { AbilityType, MenuParams } from './menu';
+import type { MenuCategory } from './menu';
 
 /**
  * 料理インスタンス
@@ -11,6 +11,5 @@ export interface Food {
   iconUrl: string;
   price: number;
   cookingTime: number; // 調理時間（秒）
-  ability?: AbilityType;  // 特殊能力の種類（MenuItemから継承）
-  params?: MenuParams;    // パラメータ（MenuItemから継承）
+  category: MenuCategory; // カテゴリ（MenuItemから継承）
 }

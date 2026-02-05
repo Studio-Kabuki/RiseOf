@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { StaffDefinition } from '../types/staffDefinition';
 import { useEntityStore } from './entityStore';
+import { INITIAL_STAFF_COUNT } from '../constants/game';
 
 const MAX_STAFF_SLOTS = 4;
 
@@ -124,8 +125,8 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       ...abilities,
     });
 
-    // ゲーム内のスタッフエンティティも追加
-    useEntityStore.getState().setStaffCount(newHiredStaff.length);
+    // ゲーム内のスタッフエンティティも追加（初期スタッフ + 雇用スタッフ）
+    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT + newHiredStaff.length);
 
     return true;
   },
@@ -140,8 +141,8 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       ...abilities,
     });
 
-    // ゲーム内のスタッフエンティティも削除
-    useEntityStore.getState().setStaffCount(newHiredStaff.length);
+    // ゲーム内のスタッフエンティティも削除（初期スタッフ + 雇用スタッフ）
+    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT + newHiredStaff.length);
   },
 
   replaceStaff: (oldId: string, newStaff: StaffDefinition) => {

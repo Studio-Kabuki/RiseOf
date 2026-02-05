@@ -6,30 +6,13 @@ import { useMenuStore } from '../../store/menuStore';
 import { useStaffStore } from '../../store/staffStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
 import { calculateSales } from '../../utils/salesCalculator';
-
-/**
- * 登録メニューから食事時間ボーナスを計算
- * @returns 食事時間の調整値（秒）。正なら時間延長、負なら時間短縮
- */
-function calculateEatingTimeBonus(): number {
-  const { registeredMenus } = useMenuStore.getState();
-  let totalBonus = 0;
-
-  for (const menu of registeredMenus) {
-    if (menu.ability === 'eating_time' && menu.params?.eatingTimeBonus !== undefined) {
-      const bonus = typeof menu.params.eatingTimeBonus === 'number'
-        ? menu.params.eatingTimeBonus
-        : 0;
-      totalBonus += bonus;
-    }
-  }
-
-  return totalBonus;
-}
+import { createPathState, getNextWaypoint, isPathValid, type PathState } from '../../utils/pathfinding';
 
 export class CustomerSystem implements GameSystem {
   private orderingTimers: Map<string, number> = new Map();
   private spawnTimer: number = 0;
+  // パスファインディング用の経路状態
+  private pathStates: Map<string, PathState> = new Map();
 
   update(deltaTime: number): void {
     const { customers, updateCustomer, removeCustomer, waitingQueue, promoteWaitingCustomer, addWaitingCustomer, addCustomer } =
@@ -280,11 +263,9 @@ export class CustomerSystem implements GameSystem {
     deltaTime: number,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
-    // 食事時間ボーナスを適用（最低0.5秒）
-    const eatingTimeBonus = calculateEatingTimeBonus();
     const { customerSpeedMultiplier } = useStaffStore.getState();
     // customerSpeedMultiplierで食事時間も短縮
-    const adjustedEatingTime = Math.max(0.5, (EATING_TIME + eatingTimeBonus) / customerSpeedMultiplier);
+    const adjustedEatingTime = Math.max(0.5, EATING_TIME / customerSpeedMultiplier);
     const progress = customer.eatingProgress + deltaTime / adjustedEatingTime;
 
     if (progress >= 1) {
@@ -359,6 +340,7 @@ export class CustomerSystem implements GameSystem {
     );
 
     if (arrived) {
+      this.clearPathState(customer.id);
       removeCustomer(customer.id);
     }
   }
@@ -369,15 +351,35 @@ export class CustomerSystem implements GameSystem {
     deltaTime: number,
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): boolean {
-    const dx = target.x - customer.position.x;
-    const dy = target.y - customer.position.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    // パス状態を取得または作成
+    let pathState = this.pathStates.get(customer.id);
+    if (!pathState || !isPathValid(pathState, target)) {
+      pathState = createPathState(customer.position, target);
+      this.pathStates.set(customer.id, pathState);
+    }
 
-    if (distance < 2) {
+    // 次のウェイポイントを取得
+    const waypoint = getNextWaypoint(pathState, customer.position, 4);
+    if (!waypoint) {
+      // 経路完了
       updateCustomer(customer.id, {
         position: { x: target.x, y: target.y },
       });
+      this.pathStates.delete(customer.id);
       return true;
+    }
+
+    // ウェイポイントに向かって移動
+    const dx = waypoint.x - customer.position.x;
+    const dy = waypoint.y - customer.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < 2) {
+      // ウェイポイントに到達、次のフレームで次のウェイポイントへ
+      updateCustomer(customer.id, {
+        position: { x: waypoint.x, y: waypoint.y },
+      });
+      return false;
     }
 
     // customerSpeedMultiplierで移動速度も上げる
@@ -393,5 +395,12 @@ export class CustomerSystem implements GameSystem {
     });
 
     return false;
+  }
+
+  /**
+   * お客さんが削除される際にパス状態をクリア
+   */
+  clearPathState(customerId: string): void {
+    this.pathStates.delete(customerId);
   }
 }

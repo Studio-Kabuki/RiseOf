@@ -64,6 +64,8 @@ interface ChunkData {
 // レイヤーデータ
 interface LayerData {
   name: string;
+  offsetX: number; // レイヤー + 親グループのオフセット
+  offsetY: number;
   chunks: ChunkData[];
 }
 
@@ -220,35 +222,94 @@ export async function parseTmxFile(tmxUrl: string): Promise<TmxMapData> {
   // タイルセットをfirstGidでソート（降順で検索しやすく）
   tilesets.sort((a, b) => b.firstGid - a.firstGid);
 
-  // レイヤーデータを取得
+  // レイヤーデータを取得（グループ内のレイヤーも含め、オフセットを考慮）
   const layers: LayerData[] = [];
-  const layerElements = doc.querySelectorAll('layer');
-  for (const layerEl of layerElements) {
+
+  // レイヤーをパースするヘルパー関数
+  function parseLayer(layerEl: Element, parentOffsetX: number, parentOffsetY: number) {
     const layerName = layerEl.getAttribute('name') || '';
+    const layerOffsetX = parseFloat(layerEl.getAttribute('offsetx') || '0');
+    const layerOffsetY = parseFloat(layerEl.getAttribute('offsety') || '0');
+    const totalOffsetX = parentOffsetX + layerOffsetX;
+    const totalOffsetY = parentOffsetY + layerOffsetY;
 
     const chunks: ChunkData[] = [];
-    const chunkElements = layerEl.querySelectorAll('chunk');
-    for (const chunkEl of chunkElements) {
-      const chunkX = parseInt(chunkEl.getAttribute('x') || '0', 10);
-      const chunkY = parseInt(chunkEl.getAttribute('y') || '0', 10);
-      const chunkWidth = parseInt(chunkEl.getAttribute('width') || '16', 10);
-      const chunkHeight = parseInt(chunkEl.getAttribute('height') || '16', 10);
-      const csvData = chunkEl.textContent || '';
-      const tiles = csvData
-        .split(',')
-        .map((s) => parseInt(s.trim(), 10))
-        .filter((n) => !isNaN(n));
+    const chunkElements = layerEl.querySelectorAll(':scope > data > chunk');
+    // チャンクがない場合は直接dataを確認
+    if (chunkElements.length === 0) {
+      const dataEl = layerEl.querySelector(':scope > data');
+      if (dataEl) {
+        const csvData = dataEl.textContent || '';
+        const tiles = csvData
+          .split(',')
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !isNaN(n));
+        if (tiles.length > 0) {
+          // 非チャンクレイヤー（固定サイズ）
+          chunks.push({
+            x: 0,
+            y: 0,
+            width: mapWidthTiles,
+            height: mapHeightTiles,
+            tiles,
+          });
+        }
+      }
+    } else {
+      for (const chunkEl of chunkElements) {
+        const chunkX = parseInt(chunkEl.getAttribute('x') || '0', 10);
+        const chunkY = parseInt(chunkEl.getAttribute('y') || '0', 10);
+        const chunkWidth = parseInt(chunkEl.getAttribute('width') || '16', 10);
+        const chunkHeight = parseInt(chunkEl.getAttribute('height') || '16', 10);
+        const csvData = chunkEl.textContent || '';
+        const tiles = csvData
+          .split(',')
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !isNaN(n));
 
-      chunks.push({
-        x: chunkX,
-        y: chunkY,
-        width: chunkWidth,
-        height: chunkHeight,
-        tiles,
-      });
+        chunks.push({
+          x: chunkX,
+          y: chunkY,
+          width: chunkWidth,
+          height: chunkHeight,
+          tiles,
+        });
+      }
     }
 
-    layers.push({ name: layerName, chunks });
+    layers.push({ name: layerName, offsetX: totalOffsetX, offsetY: totalOffsetY, chunks });
+  }
+
+  // グループを再帰的に探索してレイヤーを取得
+  function findLayersInGroup(groupEl: Element, parentOffsetX: number, parentOffsetY: number) {
+    const groupOffsetX = parseFloat(groupEl.getAttribute('offsetx') || '0');
+    const groupOffsetY = parseFloat(groupEl.getAttribute('offsety') || '0');
+    const totalOffsetX = parentOffsetX + groupOffsetX;
+    const totalOffsetY = parentOffsetY + groupOffsetY;
+
+    // 直下のレイヤーを取得
+    const childLayers = groupEl.querySelectorAll(':scope > layer');
+    for (const layerEl of childLayers) {
+      parseLayer(layerEl, totalOffsetX, totalOffsetY);
+    }
+
+    // 子グループを再帰的に探索
+    const childGroups = groupEl.querySelectorAll(':scope > group');
+    for (const childGroup of childGroups) {
+      findLayersInGroup(childGroup, totalOffsetX, totalOffsetY);
+    }
+  }
+
+  // トップレベルのレイヤーを取得
+  const topLevelLayers = mapEl.querySelectorAll(':scope > layer');
+  for (const layerEl of topLevelLayers) {
+    parseLayer(layerEl, 0, 0);
+  }
+
+  // グループ内のレイヤーを取得
+  const topLevelGroups = mapEl.querySelectorAll(':scope > group');
+  for (const groupEl of topLevelGroups) {
+    findLayersInGroup(groupEl, 0, 0);
   }
 
   // 全てのテーブルグループを取得
@@ -418,9 +479,9 @@ export function initCollisionFromTmx(tmxData: TmxMapData): void {
           const localX = i % chunk.width;
           const localY = Math.floor(i / chunk.width);
 
-          // ピクセル座標を計算
-          const pixelX = (chunk.x + localX) * tmxData.tileWidth;
-          const pixelY = (chunk.y + localY) * tmxData.tileHeight;
+          // ピクセル座標を計算（レイヤーのオフセットを考慮）
+          const pixelX = (chunk.x + localX) * tmxData.tileWidth + layer.offsetX;
+          const pixelY = (chunk.y + localY) * tmxData.tileHeight + layer.offsetY;
 
           // コリジョンを設定
           setCollisionRect(

@@ -15,6 +15,7 @@ export const MENU_POOL_FALLBACK: MenuItem[] = [
     price: 350,
     cookingTime: 3,
     iconUrl: ICONS.meal,
+    category: 'main',
   },
 ];
 

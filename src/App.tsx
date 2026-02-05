@@ -8,7 +8,7 @@ import { UpgradeWindow } from './components/UpgradeWindow';
 import { MoneyEffects } from './components/MoneyEffects';
 import { StatusPanel } from './components/StatusPanel';
 import { PreparePhaseScreen } from './components/PreparePhaseScreen';
-import { WindowButton, Win98IconButton, Win98LargeButton, CRTOverlay } from './components/ui';
+import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
 import { toggleDebugCollision } from './utils/pathfinding';
 import './App.css';
@@ -54,8 +54,8 @@ function App() {
 
   return (
     <div className="app" style={{ fontFamily: '"DotGothic16", "MS Gothic", monospace' }}>
-      {/* CRTモニター風エフェクト */}
-      <CRTOverlay />
+      {/* CRTモニター風エフェクト（PostEffectDebugPanelで制御するため無効化） */}
+      {/* <CRTOverlay /> */}
       {/* 1日終了ウィンドウ */}
       <DayEndWindow />
 

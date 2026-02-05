@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="39" height="46" tilewidth="16" tileheight="16" infinite="1" nextlayerid="66" nextobjectid="65">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="39" height="46" tilewidth="16" tileheight="16" infinite="1" nextlayerid="66" nextobjectid="69">
  <tileset firstgid="1" source="diner.tsx"/>
  <tileset firstgid="785" source="50sdiner_room_door_tiles1.tsx"/>
  <tileset firstgid="1649" source="50sdiner_room_door_tiles2.tsx"/>
@@ -513,7 +513,7 @@
    </data>
   </layer>
   <objectgroup id="63" name="客スポーン">
-   <object id="52" type="spawn" x="256" y="416">
+   <object id="52" type="spawn" x="248" y="416">
     <properties>
      <property name="direction" value="up"/>
     </properties>

@@ -721,6 +721,7 @@ export const createFood = (menu: MenuItem): Food => ({
   iconUrl: menu.iconUrl,
   price: menu.price,
   cookingTime: menu.cookingTime,
+  category: menu.category,
 });
 
 // Helper to create combo food from all registered menus
@@ -737,6 +738,7 @@ export const createComboFood = (menus: MenuItem[]): Food => {
     iconUrl: ICONS.meal,
     price: totalPrice,
     cookingTime: totalCookingTime,
+    category: 'main', // コンボはメインカテゴリ扱い
   };
 };
 

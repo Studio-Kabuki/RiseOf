@@ -328,7 +328,7 @@ export function StatusPanel() {
       return;
     }
 
-    const menuCategory = menu.params?.category as string | undefined;
+    const menuCategory = menu.category;
 
     for (let i = currentStaffIndex; i < hiredStaff.length; i++) {
       const staff = hiredStaff[i];
@@ -398,7 +398,7 @@ export function StatusPanel() {
       return fanfare.displayedTotal;
     }
     return registeredMenus.reduce((sum, menu) => {
-      const category = menu.params?.category as string | undefined;
+      const category = menu.category;
       let price = menu.price;
       if (category) {
         price += baseBonuses[category] || 0;
@@ -414,7 +414,7 @@ export function StatusPanel() {
     if (fanfare.phase === 'animating' || fanfare.phase === 'waiting') {
       return menu.price + (fanfare.menuBonuses[index] || 0);
     }
-    const category = menu.params?.category as string | undefined;
+    const category = menu.category;
     let price = menu.price;
     if (category) {
       price += baseBonuses[category] || 0;
