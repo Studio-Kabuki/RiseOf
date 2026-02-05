@@ -47,7 +47,7 @@ export const STAFF_SPACING = 40;
 export const DAY_DURATION = 30;
 
 // お客さんスポーン間隔（秒）- UPGRADEABLE: 広告などで短縮可能
-export const CUSTOMER_SPAWN_DELAY = 6;
+export const CUSTOMER_SPAWN_DELAY = 1;
 
 // 着席から注文までの遅延（秒）
 export const ORDERING_DELAY = 0.5;

@@ -34,6 +34,7 @@ export function RestaurantMap() {
   const worldContainerRef = useRef<Container | null>(null);
   // デバッグ表示用
   const debugGraphicsRef = useRef<Graphics | null>(null);
+  const debugUnsubscribeRef = useRef<(() => void) | null>(null);
   const cameraStateRef = useRef({
     scale: MIN_ZOOM, // 最もズームアウトした状態をデフォルトに
     x: 0,
@@ -283,7 +284,7 @@ export function RestaurantMap() {
         }
 
         // デバッグ表示切り替えリスナー
-        onDebugCollisionChange((visible) => {
+        debugUnsubscribeRef.current = onDebugCollisionChange((visible) => {
           debugGraphics.visible = visible;
           if (visible) {
             drawCollisionGrid();
@@ -474,6 +475,11 @@ export function RestaurantMap() {
           // Ignore destroy errors
         }
         appRef.current = null;
+      }
+      // デバッグリスナーを解除
+      if (debugUnsubscribeRef.current) {
+        debugUnsubscribeRef.current();
+        debugUnsubscribeRef.current = null;
       }
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
