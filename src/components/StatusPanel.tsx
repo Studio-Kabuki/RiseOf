@@ -115,6 +115,7 @@ interface CardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onMouseDown?: (e: React.MouseEvent) => void;
+  onTouchStart?: (e: React.TouchEvent) => void;
   tooltipContent?: React.ReactNode;
 }
 
@@ -137,6 +138,7 @@ function Card({
   onMouseEnter,
   onMouseLeave,
   onMouseDown,
+  onTouchStart,
   tooltipContent,
 }: CardProps) {
   // スライドアニメーション用のtransform
@@ -157,6 +159,7 @@ function Card({
   return (
     <div
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
@@ -626,7 +629,7 @@ export function StatusPanel() {
     }, 0);
   }, [fanfare.phase, fanfare.displayedTotal, registeredMenus, getMenuDisplayPrice]);
 
-  // マウスイベントベースのドラッグ＆ドロップ
+  // マウス/タッチイベントベースのドラッグ＆ドロップ
   const handleMouseDown = useCallback((type: 'staff' | 'menu', index: number) => (e: React.MouseEvent) => {
     e.preventDefault();
     setDragState({
@@ -641,12 +644,26 @@ export function StatusPanel() {
     });
   }, []);
 
-  // ドラッグ中のマウス移動とマウスアップを処理
+  const handleTouchStart = useCallback((type: 'staff' | 'menu', index: number) => (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setDragState({
+      type,
+      fromIndex: index,
+      currentIndex: index,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      currentY: touch.clientY,
+      isOverTrash: false,
+    });
+  }, []);
+
+  // ドラッグ中のマウス/タッチ移動とリリースを処理
   useEffect(() => {
     if (!dragState) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - dragState.startX;
+    const handleMove = (clientX: number, clientY: number) => {
+      const deltaX = clientX - dragState.startX;
       const items = dragState.type === 'staff' ? hiredStaffRef.current : registeredMenusRef.current;
 
       // 移動量からターゲットインデックスを計算
@@ -659,25 +676,35 @@ export function StatusPanel() {
       if (trashRef.current) {
         const trashRect = trashRef.current.getBoundingClientRect();
         isOverTrash = (
-          e.clientX >= trashRect.left &&
-          e.clientX <= trashRect.right &&
-          e.clientY >= trashRect.top &&
-          e.clientY <= trashRect.bottom
+          clientX >= trashRect.left &&
+          clientX <= trashRect.right &&
+          clientY >= trashRect.top &&
+          clientY <= trashRect.bottom
         );
       }
-      // refを同期的に更新（mouseup時に最新値を取得するため）
+      // refを同期的に更新（リリース時に最新値を取得するため）
       isOverTrashRef.current = isOverTrash;
 
       setDragState(prev => prev ? {
         ...prev,
         currentIndex: newIndex,
-        currentX: e.clientX,
-        currentY: e.clientY,
+        currentX: clientX,
+        currentY: clientY,
         isOverTrash,
       } : null);
     };
 
-    const handleMouseUp = (_e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // スクロールを防止
+      const touch = e.touches[0];
+      handleMove(touch.clientX, touch.clientY);
+    };
+
+    const handleEnd = () => {
       // 最新のdragStateをrefから取得（クロージャ問題対策）
       const currentDragState = dragStateRef.current;
       if (!currentDragState) return;
@@ -723,11 +750,15 @@ export function StatusPanel() {
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
     };
   }, [dragState, reorderStaff, reorderMenus, fireStaff, removeMenu]);
 
@@ -847,6 +878,7 @@ export function StatusPanel() {
                               offsetX={offsetX}
                               offsetY={offsetY}
                               onMouseDown={handleMouseDown('staff', index)}
+                              onTouchStart={handleTouchStart('staff', index)}
                               onMouseEnter={() => !dragState && setActiveTooltip({ type: 'staff', id: staff.id, index })}
                               onMouseLeave={() => setActiveTooltip(null)}
                               onClick={() => {
@@ -931,6 +963,7 @@ export function StatusPanel() {
                             offsetX={offsetX}
                             offsetY={offsetY}
                             onMouseDown={handleMouseDown('menu', index)}
+                            onTouchStart={handleTouchStart('menu', index)}
                             onMouseEnter={() => !dragState && setActiveTooltip({ type: 'menu', id: menu.id, index })}
                             onMouseLeave={() => setActiveTooltip(null)}
                             onClick={() => {
