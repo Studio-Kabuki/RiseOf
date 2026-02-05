@@ -1,5 +1,5 @@
 import type { GameSystem } from '../GameEngine';
-import type { Customer, Position, Order } from '../../types';
+import type { Customer, Position, Order, Seat, Direction } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore, createOrder, createComboFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
@@ -127,8 +127,8 @@ export class CustomerSystem implements GameSystem {
    */
   private handleSpawn(
     deltaTime: number,
-    getAvailableSeats: () => { id: string }[],
-    addCustomer: (seatId: string) => string,
+    getAvailableSeats: () => Seat[],
+    addCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => string,
     addWaitingCustomer: () => string,
     assignSeat: (seatId: string, customerId: string) => void
   ): void {
@@ -144,9 +144,9 @@ export class CustomerSystem implements GameSystem {
       const availableSeats = getAvailableSeats();
       if (availableSeats.length > 0) {
         // 空席があれば直接入店
-        const seatId = availableSeats[0].id;
-        const customerId = addCustomer(seatId);
-        assignSeat(seatId, customerId);
+        const seat = availableSeats[0];
+        const customerId = addCustomer(seat.id, seat.direction, seat.servingOffset);
+        assignSeat(seat.id, customerId);
       } else {
         // 満席の場合は待機列に追加
         addWaitingCustomer();
@@ -159,18 +159,18 @@ export class CustomerSystem implements GameSystem {
    */
   private handleWaitingQueuePromotion(
     waitingQueue: string[],
-    getAvailableSeats: () => { id: string }[],
-    promoteWaitingCustomer: (seatId: string) => string | null,
+    getAvailableSeats: () => Seat[],
+    promoteWaitingCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => string | null,
     assignSeat: (seatId: string, customerId: string) => void
   ): void {
     if (waitingQueue.length === 0) return;
 
     const availableSeats = getAvailableSeats();
     if (availableSeats.length > 0) {
-      const seatId = availableSeats[0].id;
-      const customerId = promoteWaitingCustomer(seatId);
+      const seat = availableSeats[0];
+      const customerId = promoteWaitingCustomer(seat.id, seat.direction, seat.servingOffset);
       if (customerId) {
-        assignSeat(seatId, customerId);
+        assignSeat(seat.id, customerId);
       }
     }
   }
@@ -345,9 +345,15 @@ export class CustomerSystem implements GameSystem {
     updateCustomer: (id: string, updates: Partial<Customer>) => void,
     removeCustomer: (id: string) => void
   ): void {
+    // 退店地点はスポーン地点と同じ（入ってきた場所に戻る）
+    const spawnPoint = useRestaurantStore.getState().getSpawnPoint();
+    const exitPosition = spawnPoint
+      ? { x: spawnPoint.x, y: spawnPoint.y }
+      : EXIT_POSITION;
+
     const arrived = this.moveTowards(
       customer,
-      EXIT_POSITION,
+      exitPosition,
       deltaTime,
       updateCustomer
     );

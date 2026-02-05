@@ -25,13 +25,13 @@ export class StaffSprite extends Container {
   private drawBody(color: number): void {
     this.body.clear();
     // 頭
-    this.body.circle(0, -20, 12);
+    this.body.circle(0, -10, 6);
     this.body.fill(color);
     // 体（エプロン風）
-    this.body.roundRect(-10, -8, 20, 25, 5);
+    this.body.roundRect(-5, -4, 10, 12, 2);
     this.body.fill(color);
     // エプロン
-    this.body.roundRect(-8, 0, 16, 15, 3);
+    this.body.roundRect(-4, 0, 8, 7, 1);
     this.body.fill(0xffffff);
   }
 
@@ -63,11 +63,11 @@ export class StaffSprite extends Container {
           this.foodSprite.destroy();
         }
         this.foodSprite = Sprite.from(foodIconUrl);
-        this.foodSprite.width = 24;
-        this.foodSprite.height = 24;
+        this.foodSprite.width = 12;
+        this.foodSprite.height = 12;
         this.foodSprite.anchor.set(0.5);
-        this.foodSprite.x = 18;
-        this.foodSprite.y = -5;
+        this.foodSprite.x = 9;
+        this.foodSprite.y = -2;
         this.addChild(this.foodSprite);
         this.currentFoodIconUrl = foodIconUrl;
       }
@@ -115,11 +115,11 @@ export class StaffSprite extends Container {
     // 新しいアイコンを作成
     if (iconUrl) {
       this.stateIcon = Sprite.from(iconUrl);
-      this.stateIcon.width = 20;
-      this.stateIcon.height = 20;
+      this.stateIcon.width = 10;
+      this.stateIcon.height = 10;
       this.stateIcon.anchor.set(0.5);
       this.stateIcon.x = 0;
-      this.stateIcon.y = -45; // 頭の上
+      this.stateIcon.y = -22; // 頭の上
       this.addChild(this.stateIcon);
     }
 
@@ -161,11 +161,11 @@ export class StaffSprite extends Container {
     // 新しいアイコンを作成
     if (iconUrl) {
       this.cookingFoodIcon = Sprite.from(iconUrl);
-      this.cookingFoodIcon.width = 24;
-      this.cookingFoodIcon.height = 24;
+      this.cookingFoodIcon.width = 12;
+      this.cookingFoodIcon.height = 12;
       this.cookingFoodIcon.anchor.set(0.5);
       this.cookingFoodIcon.x = 0;
-      this.cookingFoodIcon.y = -60; // 頭の上（ゲージの中央）
+      this.cookingFoodIcon.y = -30; // 頭の上（ゲージの中央）
       this.addChild(this.cookingFoodIcon);
     }
 
@@ -183,10 +183,10 @@ export class StaffSprite extends Container {
 
     this.progressRing.clear();
     this.progressRing.x = 0;
-    this.progressRing.y = -60; // 頭の上
+    this.progressRing.y = -30; // 頭の上
 
-    const radius = 18;
-    const lineWidth = 4;
+    const radius = 9;
+    const lineWidth = 2;
 
     // 背景リング（灰色）
     this.progressRing.circle(0, 0, radius);

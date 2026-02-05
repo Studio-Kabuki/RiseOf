@@ -56,17 +56,17 @@ export const ORDERING_DELAY = 0.5;
 export const EATING_TIME = 2;
 
 // デフォルト調理時間（秒）
-export const COOKING_TIME = 0;
+export const COOKING_TIME = 1;
 
 // ------------------------------------------------------------
 // 移動速度設定 (px/秒)
 // ------------------------------------------------------------
 
 // お客さんの移動速度 - UPGRADEABLE: 椅子の快適さで変化?
-export const CUSTOMER_SPEED = 80;
+export const CUSTOMER_SPEED = 53; // 元80の2/3
 
 // 店員の移動速度 - UPGRADEABLE: 店員のレベルアップで向上
-export const STAFF_SPEED = 200;
+export const STAFF_SPEED = 133; // 元200の2/3
 
 // スタッフの調理時移動速度（キッチン内での動き）
 export const STAFF_COOKING_SPEED = 100;
@@ -145,8 +145,8 @@ export const MAX_STAFF_SLOTS = 2;
 // 座席数 - UPGRADEABLE: テーブル購入で増加
 export const SEAT_COUNT = 4;
 
-// 初期店員数（0からスタート、ショップで購入）
-export const INITIAL_STAFF_COUNT = 0;
+// 初期店員数（1人は最初から配置、能力なし）
+export const INITIAL_STAFF_COUNT = 1;
 
 
 // ------------------------------------------------------------

@@ -276,6 +276,53 @@ export function RestaurantMap() {
               }
             }
           }
+
+          // 配膳位置を青で表示
+          const currentRestaurant = useRestaurantStore.getState().restaurant;
+          const cellSize = gridInfo.cellSize;
+
+          for (const table of currentRestaurant.tables) {
+            for (const seat of table.seats) {
+              // 座席のワールド座標を計算
+              const seatX = table.position.x + seat.localPosition.x;
+              const seatY = table.position.y + seat.localPosition.y;
+
+              // directionに基づいて配膳位置を計算（1 + servingOffset マス先）
+              const servingDist = cellSize * (1 + (seat.servingOffset ?? 0));
+              let servingX = seatX;
+              let servingY = seatY;
+
+              if (seat.direction) {
+                switch (seat.direction) {
+                  case 'left':
+                    servingX = seatX - servingDist;
+                    break;
+                  case 'right':
+                    servingX = seatX + servingDist;
+                    break;
+                  case 'up':
+                    servingY = seatY - servingDist;
+                    break;
+                  case 'down':
+                    servingY = seatY + servingDist;
+                    break;
+                }
+              }
+
+              // 配膳位置を青い円で表示（実際の座標）
+              debugGraphics.circle(servingX, servingY, 6);
+              debugGraphics.fill({ color: 0x0000ff, alpha: 0.7 });
+
+              // 座席位置を緑の円で表示（実際の座標）
+              debugGraphics.circle(seatX, seatY, 6);
+              debugGraphics.fill({ color: 0x00ff00, alpha: 0.7 });
+
+              // 座席から配膳位置への線を描画
+              debugGraphics.moveTo(seatX, seatY);
+              debugGraphics.lineTo(servingX, servingY);
+              debugGraphics.stroke({ color: 0x0000ff, alpha: 0.5, width: 2 });
+            }
+          }
         };
 
         // 初回描画

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Restaurant, Order, Seat, Food, MenuItem } from '../types';
+import type { StaffPositionData, SpawnPointData } from '../utils/tmxParser';
 import {
   ENTRANCE_POSITION,
   EXIT_POSITION,
@@ -13,7 +14,7 @@ import {
   calculateRent,
   SEAT_COUNT,
 } from '../constants/game';
-import { useEntityStore } from './entityStore';
+import { useEntityStore, setRestaurantStoreRef } from './entityStore';
 
 // 初期レストラン設定
 const createInitialRestaurant = (): Restaurant => ({
@@ -75,6 +76,10 @@ interface RestaurantState {
   // お金エフェクト
   moneyEffects: Array<{ id: string; amount: number; x: number; y: number; createdAt: number }>;
 
+  // TMXから読み込んだ位置データ
+  staffPositions: StaffPositionData[]; // スタッフ初期位置
+  spawnPoints: SpawnPointData[]; // お客さん生成位置
+
   // Day getters
   getDayProgress: () => number; // 0-1で1日の進捗
   isNormaAchieved: () => boolean; // ノルマ達成しているか
@@ -132,6 +137,18 @@ interface RestaurantState {
   // TMXからテーブルを設定
   setTables: (tables: import('../types').Table[]) => void;
 
+  // TMXからスタッフ位置を設定
+  setStaffPositions: (positions: StaffPositionData[]) => void;
+
+  // TMXからスポーン位置を設定
+  setSpawnPoints: (points: SpawnPointData[]) => void;
+
+  // スタッフの初期位置を取得
+  getStaffPosition: (index: number) => { x: number; y: number };
+
+  // スポーン位置を取得
+  getSpawnPoint: () => SpawnPointData | null;
+
   // テーブル解放
   getUnlockedTables: () => import('../types').Table[]; // 解放済みテーブルを取得
   unlockNextTable: () => boolean; // 次のテーブルを解放（成功でtrue）
@@ -181,6 +198,10 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   // お金エフェクト
   moneyEffects: [],
+
+  // TMXから読み込んだ位置データ
+  staffPositions: [],
+  spawnPoints: [],
 
   getDayProgress: () => {
     const { dayTimeElapsed } = get();
@@ -570,6 +591,39 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     });
   },
 
+  // TMXからスタッフ位置を設定
+  setStaffPositions: (positions) => {
+    set({ staffPositions: positions });
+  },
+
+  // TMXからスポーン位置を設定
+  setSpawnPoints: (points) => {
+    set({ spawnPoints: points });
+  },
+
+  // スタッフの初期位置を取得
+  getStaffPosition: (index) => {
+    const { staffPositions } = get();
+    const pos = staffPositions.find((p) => p.index === index);
+    if (pos) {
+      return { x: pos.x, y: pos.y };
+    }
+    // フォールバック: 古い計算式を使用
+    return {
+      x: KITCHEN_POSITION.x + index * 30,
+      y: KITCHEN_POSITION.y,
+    };
+  },
+
+  // スポーン位置を取得
+  getSpawnPoint: () => {
+    const { spawnPoints } = get();
+    if (spawnPoints.length > 0) {
+      return spawnPoints[0];
+    }
+    return null;
+  },
+
   // 解放済みテーブルを取得
   getUnlockedTables: () => {
     const { restaurant, tableUnlockLevel } = get();
@@ -694,3 +748,6 @@ export const createOrder = (customerId: string, food: Food): Order => ({
   state: 'pending',
   cookingProgress: 0,
 });
+
+// entityStoreに循環参照用のストア参照をセット
+setRestaurantStoreRef(useRestaurantStore);

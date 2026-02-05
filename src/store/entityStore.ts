@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Customer, Staff } from '../types';
+import type { Customer, Staff, Direction } from '../types';
 import {
   CUSTOMER_SPEED,
   STAFF_SPEED,
@@ -17,12 +17,12 @@ interface EntityState {
   waitingQueue: string[]; // 待機中のお客さんID（店外で並んでいる）
 
   // Customer actions
-  addCustomer: (seatId: string) => string;
+  addCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => string;
   addWaitingCustomer: () => string; // 待機列にお客さんを追加
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
   removeCustomer: (id: string) => void;
   getCustomer: (id: string) => Customer | undefined;
-  promoteWaitingCustomer: (seatId: string) => string | null; // 待機列から入店させる
+  promoteWaitingCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => string | null; // 待機列から入店させる
   getWaitingPosition: (index: number) => { x: number; y: number }; // 待機位置を取得
   clearAllCustomers: () => void; // 全お客さんを即座にクリア
 
@@ -47,7 +47,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   staff: [],
   waitingQueue: [],
 
-  addCustomer: (seatId: string) => {
+  addCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => {
     const id = `customer-${++customerIdCounter}`;
     const customer: Customer = {
       id,
@@ -57,6 +57,8 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       assignedSeatId: seatId,
       orderedFood: null,
       eatingProgress: 0,
+      direction, // 配膳位置計算用のお客さんの向き
+      servingOffset, // 配膳位置のオフセット
     };
     set((state) => ({
       customers: [...state.customers, customer],
@@ -99,7 +101,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
 
   getCustomer: (id) => get().customers.find((c) => c.id === id),
 
-  promoteWaitingCustomer: (seatId: string) => {
+  promoteWaitingCustomer: (seatId: string, direction?: Direction, servingOffset?: number) => {
     const { waitingQueue, updateCustomer, customers } = get();
     if (waitingQueue.length === 0) return null;
 
@@ -117,6 +119,8 @@ export const useEntityStore = create<EntityState>((set, get) => ({
       state: 'entering',
       assignedSeatId: seatId,
       position: getSpawnPosition(),
+      direction, // 配膳位置計算用のお客さんの向き
+      servingOffset, // 配膳位置のオフセット
     });
 
     // 残りの待機客の位置を更新

@@ -1,17 +1,55 @@
 import type { GameSystem } from '../GameEngine';
-import type { Staff, Position, Order } from '../../types';
+import type { Staff, Position, Order, Direction, Customer } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore } from '../../store/restaurantStore';
 import { useStaffStore } from '../../store/staffStore';
+import { COOKING_TIME } from '../../constants/game';
 import {
   type PathState,
   createPathState,
   getNextWaypoint,
   isPathValid,
+  getCellSize,
 } from '../../utils/pathfinding';
 
 // 配膳完了とみなす距離（ピクセル）
-const SERVING_DISTANCE = 20;
+const SERVING_DISTANCE = 30;
+
+/**
+ * お客さんの向きに基づいて配膳位置を計算
+ * 配膳位置はお客さんが向いている方向の(1 + servingOffset)タイル先
+ * @param customerPos お客さんの位置
+ * @param direction お客さんが向いている方向
+ * @param servingOffset 追加オフセット（デフォルト0）
+ * @returns 配膳位置
+ */
+function calculateServingPosition(
+  customerPos: Position,
+  direction: Direction | undefined,
+  servingOffset?: number
+): Position {
+  const cellSize = getCellSize();
+  // デフォルト1マス + servingOffset
+  const offset = cellSize * (1 + (servingOffset ?? 0));
+
+  // directionが指定されていない場合はお客さんの位置をそのまま返す
+  if (!direction) {
+    return customerPos;
+  }
+
+  switch (direction) {
+    case 'left':
+      return { x: customerPos.x - offset, y: customerPos.y };
+    case 'right':
+      return { x: customerPos.x + offset, y: customerPos.y };
+    case 'up':
+      return { x: customerPos.x, y: customerPos.y - offset };
+    case 'down':
+      return { x: customerPos.x, y: customerPos.y + offset };
+    default:
+      return customerPos;
+  }
+}
 
 /**
  * 統合スタッフシステム
@@ -260,31 +298,10 @@ export class StaffSystem implements GameSystem {
       return;
     }
 
-    // 調理時間を取得（料理のcookingTimeを使用、デフォルト3秒）
+    // 調理時間を取得（全料理共通でCOOKING_TIME定数を使用）
     // 店員の能力による調理時間短縮を適用
     const { cookingSpeedMultiplier } = useStaffStore.getState();
-    const baseCookingTime = staff.currentFood.cookingTime ?? 3;
-
-    // 調理時間が0なら即座に完了
-    if (baseCookingTime === 0) {
-      // 調理完了
-      updateOrder(staff.currentOrderId, {
-        state: 'ready',
-        cookingProgress: 1,
-      });
-      addReadyFood(staff.currentOrderId);
-
-      // 料理を持って配膳へ
-      updateStaff(staff.id, {
-        state: 'picking_food',
-        carryingFood: staff.currentFood,
-        currentFood: null,
-        cookingProgress: 0,
-      });
-      return;
-    }
-
-    const cookingTime = baseCookingTime * cookingSpeedMultiplier;
+    const cookingTime = COOKING_TIME * cookingSpeedMultiplier;
     const newProgress = staff.cookingProgress + deltaTime / cookingTime;
 
     if (newProgress >= 1) {
@@ -328,10 +345,11 @@ export class StaffSystem implements GameSystem {
 
   /**
    * お客さんへ移動中の処理
+   * お客さんの向きに基づいて配膳位置（テーブル上）に移動
    */
   private handleMovingToCustomer(
     staff: Staff,
-    customers: ReturnType<typeof useEntityStore.getState>['customers'],
+    customers: Customer[],
     deltaTime: number,
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
@@ -365,10 +383,24 @@ export class StaffSystem implements GameSystem {
       return;
     }
 
+    // 配膳位置を計算（お客さんの向きに基づいて(1+offset)タイル先のテーブル上）
+    const servingPosition = calculateServingPosition(
+      targetCustomer.position,
+      targetCustomer.direction,
+      targetCustomer.servingOffset
+    );
+
+    // デバッグログ（初回のみ）
+    if (!this.pathStates.has(staff.id)) {
+      console.log('[Serving] Customer direction:', targetCustomer.direction,
+        'Position:', targetCustomer.position,
+        'Serving position:', servingPosition);
+    }
+
     // 配膳はSERVING_DISTANCEまで近づいたら完了とみなす
     const arrived = this.moveTowards(
       staff,
-      targetCustomer.position,
+      servingPosition,
       deltaTime,
       updateStaff,
       SERVING_DISTANCE
@@ -390,9 +422,8 @@ export class StaffSystem implements GameSystem {
     updateCustomer: (id: string, updates: Partial<import('../../types').Customer>) => void,
     removeOrder: (orderId: string) => void,
     updateStaff: (id: string, updates: Partial<Staff>) => void,
-    allStaff: Staff[]
+    _allStaff: Staff[]
   ): void {
-    const { isClosing, restaurant } = useRestaurantStore.getState();
 
     // お客さんに料理を渡す
     const targetCustomer = customers.find(
@@ -408,62 +439,7 @@ export class StaffSystem implements GameSystem {
       removeOrder(staff.currentOrderId);
     }
 
-    // 閉店処理中は定位置に戻る
-    if (isClosing) {
-      updateStaff(staff.id, {
-        state: 'idle',
-        carryingFood: null,
-        targetCustomerId: null,
-        currentOrderId: null,
-        cookingProgress: 0,
-        currentFood: null,
-      });
-      return;
-    }
-
-    // 次の仕事を探す
-    // 優先順位1: 完成した料理があればキッチンへ（配膳）- 他のスタッフが担当していないもの
-    for (const nextOrderId of restaurant.kitchen.readyFoods) {
-      if (this.isOrderClaimed(nextOrderId, allStaff, staff.id)) {
-        continue;
-      }
-
-      const nextOrder = useRestaurantStore.getState().getOrder(nextOrderId);
-      if (nextOrder) {
-        this.claimOrder(nextOrderId);
-        updateStaff(staff.id, {
-          state: 'moving_to_kitchen',
-          carryingFood: nextOrder.food,
-          targetCustomerId: nextOrder.customerId,
-          currentOrderId: nextOrderId,
-          cookingProgress: 0,
-          currentFood: null,
-        });
-        return;
-      }
-    }
-
-    // 優先順位2: 未調理の注文があればキッチンへ（調理）- 他のスタッフが担当していないもの
-    const pendingOrder = restaurant.kitchen.orders.find(
-      (order) => order.state === 'pending' && !this.isOrderClaimed(order.id, allStaff, staff.id)
-    );
-
-    if (pendingOrder) {
-      this.claimOrder(pendingOrder.id);
-      useRestaurantStore.getState().updateOrder(pendingOrder.id, { state: 'cooking' });
-
-      updateStaff(staff.id, {
-        state: 'moving_to_kitchen',
-        currentOrderId: pendingOrder.id,
-        currentFood: pendingOrder.food,
-        targetCustomerId: pendingOrder.customerId,
-        cookingProgress: 0,
-        carryingFood: null,
-      });
-      return;
-    }
-
-    // 何もなければ待機状態へ（定位置に戻る）
+    // 配膳完了後は必ず定位置に戻る（次の仕事はidleステートで探す）
     updateStaff(staff.id, {
       state: 'idle',
       carryingFood: null,

@@ -21,10 +21,10 @@ export class CustomerSprite extends Container {
   private drawBody(color: number): void {
     this.body.clear();
     // 頭
-    this.body.circle(0, -20, 12);
+    this.body.circle(0, -10, 6);
     this.body.fill(color);
     // 体
-    this.body.roundRect(-10, -8, 20, 25, 5);
+    this.body.roundRect(-5, -4, 10, 12, 2);
     this.body.fill(color);
   }
 
@@ -60,13 +60,13 @@ export class CustomerSprite extends Container {
       // 吹き出しがなければ作成
       if (!this.bubble) {
         this.bubble = new Container();
-        this.bubble.y = -55;
+        this.bubble.y = -28;
 
         // 吹き出し背景
         const bg = new Graphics();
-        bg.roundRect(-18, -18, 36, 36, 8);
+        bg.roundRect(-9, -9, 18, 18, 4);
         bg.fill(0xffffff);
-        bg.stroke({ width: 2, color: 0x333333 });
+        bg.stroke({ width: 1, color: 0x333333 });
         this.bubble.addChild(bg);
 
         this.addChild(this.bubble);
@@ -80,8 +80,8 @@ export class CustomerSprite extends Container {
         }
 
         this.bubbleIcon = Sprite.from(menuIconUrl);
-        this.bubbleIcon.width = 24;
-        this.bubbleIcon.height = 24;
+        this.bubbleIcon.width = 12;
+        this.bubbleIcon.height = 12;
         this.bubbleIcon.anchor.set(0.5);
         this.bubble.addChild(this.bubbleIcon);
         this.currentMenuIconUrl = menuIconUrl;
@@ -102,19 +102,19 @@ export class CustomerSprite extends Container {
     if (customer.state === 'eating') {
       if (!this.progressBar) {
         this.progressBar = new Graphics();
-        this.progressBar.y = 25;
+        this.progressBar.y = 12;
         this.addChild(this.progressBar);
       }
 
       // プログレスバー描画
       this.progressBar.clear();
       // 背景
-      this.progressBar.roundRect(-15, 0, 30, 6, 3);
+      this.progressBar.roundRect(-8, 0, 15, 3, 1);
       this.progressBar.fill(0x333333);
       // 進捗
-      const width = 28 * customer.eatingProgress;
+      const width = 14 * customer.eatingProgress;
       if (width > 0) {
-        this.progressBar.roundRect(-14, 1, width, 4, 2);
+        this.progressBar.roundRect(-7, 0.5, width, 2, 1);
         this.progressBar.fill(0x4caf50);
       }
     } else {

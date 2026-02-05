@@ -19,6 +19,7 @@ interface CustomerSeatData {
   x: number;
   y: number;
   direction: 'up' | 'down' | 'left' | 'right';
+  servingOffset?: number; // 配膳位置のオフセット（デフォルト1マス + この値）
 }
 
 // テーブルグループ情報
@@ -154,8 +155,11 @@ function findTableGroups(
           const y = objY + objH / 2 + offsetY;
           const directionStr = getProperty(obj, 'direction') || 'down';
           const direction = directionStr as 'up' | 'down' | 'left' | 'right';
+          // 配膳位置オフセット（デフォルト1マス + offset値）
+          const offsetStr = getProperty(obj, 'offset');
+          const servingOffset = offsetStr ? parseFloat(offsetStr) : undefined;
 
-          customerSeats.push({ x, y, direction });
+          customerSeats.push({ x, y, direction, servingOffset });
         }
       }
     }
@@ -281,6 +285,8 @@ export async function parseTmxFile(tmxUrl: string): Promise<TmxMapData> {
         y: cs.y - centerY,
       },
       customerId: null,
+      direction: cs.direction, // 配膳位置計算用のお客さんの向き
+      servingOffset: cs.servingOffset, // 配膳位置のオフセット
     }));
 
     return {
@@ -337,6 +343,9 @@ export async function parseTmxFile(tmxUrl: string): Promise<TmxMapData> {
 
   console.log('[TMX Parser] Parsed table groups:', tableGroups);
   console.log('[TMX Parser] Tables:', tables);
+  console.log('[TMX Parser] Seat directions:', tables.flatMap(t =>
+    t.seats.map(s => ({ tableId: t.id, seatId: s.id, direction: s.direction }))
+  ));
   console.log('[TMX Parser] Camera center:', cameraCenter);
   console.log('[TMX Parser] Staff positions:', staffPositions);
   console.log('[TMX Parser] Spawn points:', spawnPoints);
