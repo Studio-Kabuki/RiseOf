@@ -3,7 +3,6 @@ import type { Staff, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore } from '../../store/restaurantStore';
 import { useStaffStore } from '../../store/staffStore';
-import { getStaffIdlePosition } from '../../constants/game';
 
 /**
  * 統合スタッフシステム
@@ -46,7 +45,7 @@ export class StaffSystem implements GameSystem {
   update(deltaTime: number): void {
     const { staff, updateStaff, customers, updateCustomer } =
       useEntityStore.getState();
-    const { restaurant, removeReadyFood, removeOrder, isClosing } =
+    const { restaurant, removeReadyFood, removeOrder, isClosing, getStaffPosition } =
       useRestaurantStore.getState();
 
     // フレーム開始時にクリア
@@ -54,7 +53,7 @@ export class StaffSystem implements GameSystem {
 
     for (let i = 0; i < staff.length; i++) {
       const s = staff[i];
-      const idlePosition = getStaffIdlePosition(i);
+      const idlePosition = getStaffPosition(i);
 
       // 閉店処理中：全員即座にidleにして定位置に戻す
       if (isClosing && s.state !== 'idle') {
@@ -192,31 +191,23 @@ export class StaffSystem implements GameSystem {
 
   /**
    * キッチンへ移動中の処理
-   * 到着後:
+   * 店員の定位置 = キッチンとみなすので、移動は行わず即座に次のステートへ遷移
    * - currentFoodがある場合: 調理開始（cookingステートへ）
    * - carryingFoodがある場合: 配膳のため料理を受け取る（picking_foodステートへ）
    */
   private handleMovingToKitchen(
     staff: Staff,
-    kitchenPosition: Position,
-    deltaTime: number,
+    _kitchenPosition: Position,
+    _deltaTime: number,
     updateStaff: (id: string, updates: Partial<Staff>) => void
   ): void {
-    const arrived = this.moveTowards(
-      staff,
-      kitchenPosition,
-      deltaTime,
-      updateStaff
-    );
-
-    if (arrived) {
-      // currentFoodがある場合は調理開始
-      if (staff.currentFood) {
-        updateStaff(staff.id, { state: 'cooking' });
-      } else {
-        // carryingFoodがある場合は配膳のため料理を受け取る
-        updateStaff(staff.id, { state: 'picking_food' });
-      }
+    // 店員の定位置 = キッチンなので、移動は不要（即座に到着扱い）
+    // currentFoodがある場合は調理開始
+    if (staff.currentFood) {
+      updateStaff(staff.id, { state: 'cooking' });
+    } else {
+      // carryingFoodがある場合は配膳のため料理を受け取る
+      updateStaff(staff.id, { state: 'picking_food' });
     }
   }
 
