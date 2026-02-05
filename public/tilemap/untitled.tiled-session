@@ -10,27 +10,26 @@
     "fileStates": {
         "50sdiner_room_door_tiles1.tsx": {
             "scaleInDock": 1.1549,
-            "scaleInEditor": 2.49
+            "scaleInEditor": 1.44
         },
         "50sdiner_room_door_tiles2.tsx": {
             "scaleInDock": 1.2802,
-            "scaleInEditor": 2.49
+            "scaleInEditor": 1.44
         },
         "diner.tmx": {
             "expandedGroupLayers": [
-                38,
-                54
+                38
             ],
-            "scale": 1.9593,
-            "selectedLayer": 3,
+            "scale": 1.8,
+            "selectedLayer": 22,
             "viewCenter": {
-                "x": 153.37110192415656,
-                "y": -77.0683407339356
+                "x": 100.83333333333333,
+                "y": -90
             }
         },
         "diner.tsx": {
             "scaleInDock": 1.3228,
-            "scaleInEditor": 2.49
+            "scaleInEditor": 1.44
         },
         "untitled.tmx": {
             "expandedGroupLayers": [
@@ -58,7 +57,7 @@
         "diner.tmx"
     ],
     "project": "untitled.tiled-project",
-    "property.type": "int",
+    "property.type": "bool",
     "recentFiles": [
         "diner.tsx",
         "50sdiner_room_door_tiles1.tsx",

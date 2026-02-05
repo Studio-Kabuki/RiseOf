@@ -3,6 +3,9 @@ import { useMenuStore } from '../store/menuStore';
 import { useStaffStore } from '../store/staffStore';
 import { useRestaurantStore } from '../store/restaurantStore';
 import { CATEGORY_INFO, type MenuCategory } from '../types/menu';
+import { WindowDialog } from './ui/WindowDialog';
+import { WindowButton } from './ui/WindowButton';
+import type { StaffDefinition } from '../types/staffDefinition';
 
 // ファンファーレ演出の状態
 type FanfarePhase = 'idle' | 'animating' | 'waiting' | 'complete';
@@ -337,6 +340,9 @@ export function StatusPanel() {
   } = useMenuStore();
   const { hiredStaff, baseBonuses, categoryBonuses, maxStaffSlots, reorderStaff, fireStaff } = useStaffStore();
   const { isOpen, lit, spendLit } = useRestaurantStore();
+
+  // 解雇確認ダイアログの状態
+  const [fireConfirmStaff, setFireConfirmStaff] = useState<StaffDefinition | null>(null);
 
   // メニューカードの要素を追跡（シーズニングドロップ判定用）
   const menuCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -694,8 +700,10 @@ export function StatusPanel() {
       if (isOverTrash) {
         if (currentDragState.type === 'staff') {
           const staff = hiredStaffRef.current[currentDragState.fromIndex];
-          if (staff && window.confirm(`本当に${staff.name}を解雇しますか？`)) {
-            fireStaff(staff.id);
+          if (staff) {
+            // 解雇確認ダイアログを表示（ドラッグ状態は維持）
+            setFireConfirmStaff(staff);
+            return; // setDragState(null)を呼ばずに終了
           }
         } else if (currentDragState.type === 'menu') {
           const menu = registeredMenusRef.current[currentDragState.fromIndex];
@@ -785,7 +793,7 @@ export function StatusPanel() {
         }}
       >
         {/* 左側: スタッフ・メニュー */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
           {/* ヘッダー */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <CollapseButton collapsed={staffMenuCollapsed} onClick={() => setStaffMenuCollapsed(!staffMenuCollapsed)} />
@@ -797,15 +805,15 @@ export function StatusPanel() {
           {!staffMenuCollapsed && (
             <>
               {/* スタッフカード行 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 20 }}>
-                <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ fontSize: 9, color: '#000000', fontWeight: 'bold', width: 22, flexShrink: 0 }}>
                   スタッフ
                 </span>
                 <div
                   ref={staffContainerRef}
                   style={{
                     display: 'flex',
-                    flex: 1,
+                    width: Math.max(maxStaffSlots, maxMenuSlots) * CARD_SIZE + (Math.max(maxStaffSlots, maxMenuSlots) - 1) * CARD_GAP,
                   }}
                 >
                   {(() => {
@@ -865,15 +873,15 @@ export function StatusPanel() {
               </div>
 
               {/* メニューカード行 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 20 }}>
-                <span style={{ fontSize: 10, color: '#000000', fontWeight: 'bold', marginRight: 4, width: 45 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ fontSize: 9, color: '#000000', fontWeight: 'bold', width: 22, flexShrink: 0 }}>
                   メニュー
                 </span>
                 <div
                   ref={menuContainerRef}
                   style={{
                     display: 'flex',
-                    flex: 1,
+                    width: Math.max(maxStaffSlots, maxMenuSlots) * CARD_SIZE + (Math.max(maxStaffSlots, maxMenuSlots) - 1) * CARD_GAP,
                   }}
                 >
                   {(() => {
@@ -984,7 +992,7 @@ export function StatusPanel() {
 
         {/* 右側: ゴミ箱と客単価（編成パネル内、折りたたみ時は非表示） */}
         {!staffMenuCollapsed && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, marginLeft: 'auto' }}>
             {/* ゴミ箱 */}
             <div
               ref={trashRef}
@@ -1042,6 +1050,66 @@ export function StatusPanel() {
           50% { filter: brightness(1.3); box-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
         }
       `}</style>
+
+      {/* 解雇確認ダイアログ */}
+      {fireConfirmStaff && (
+        <WindowDialog
+          title={fireConfirmStaff.shopExclude ? "エラー" : "確認"}
+          width="300px"
+          zIndex={2000}
+          variant={fireConfirmStaff.shopExclude ? "error" : "default"}
+          onClose={() => {
+            setFireConfirmStaff(null);
+            setDragState(null);
+          }}
+          footer={
+            fireConfirmStaff.shopExclude ? (
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <WindowButton onClick={() => {
+                  setFireConfirmStaff(null);
+                  setDragState(null);
+                }}>
+                  OK
+                </WindowButton>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
+                <WindowButton onClick={() => {
+                  setFireConfirmStaff(null);
+                  setDragState(null);
+                }}>
+                  いいえ
+                </WindowButton>
+                <WindowButton
+                  onClick={() => {
+                    fireStaff(fireConfirmStaff.id);
+                    setFireConfirmStaff(null);
+                    setDragState(null);
+                  }}
+                >
+                  はい
+                </WindowButton>
+              </div>
+            )
+          }
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img
+              src={fireConfirmStaff.iconUrl}
+              alt={fireConfirmStaff.name}
+              style={{ width: 48, height: 48, objectFit: 'contain' }}
+            />
+            <div>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{fireConfirmStaff.name}</div>
+              {fireConfirmStaff.shopExclude ? (
+                <div>は解雇できません</div>
+              ) : (
+                <div>を本当に解雇しますか？</div>
+              )}
+            </div>
+          </div>
+        </WindowDialog>
+      )}
     </div>
   );
 }
