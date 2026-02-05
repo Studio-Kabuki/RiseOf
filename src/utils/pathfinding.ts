@@ -206,16 +206,12 @@ function heuristic(x1: number, y1: number, x2: number, y2: number): number {
   return Math.abs(x1 - x2) + Math.abs(y1 - y2);
 }
 
-// 8方向移動（斜め移動も許可）
+// 4方向移動（上下左右のみ、グリッドに沿った移動）
 const DIRECTIONS = [
-  { dx: 0, dy: -1, cost: 1 },    // 上
-  { dx: 1, dy: 0, cost: 1 },     // 右
-  { dx: 0, dy: 1, cost: 1 },     // 下
-  { dx: -1, dy: 0, cost: 1 },    // 左
-  { dx: 1, dy: -1, cost: 1.41 }, // 右上
-  { dx: 1, dy: 1, cost: 1.41 },  // 右下
-  { dx: -1, dy: 1, cost: 1.41 }, // 左下
-  { dx: -1, dy: -1, cost: 1.41 }, // 左上
+  { dx: 0, dy: -1, cost: 1 }, // 上
+  { dx: 1, dy: 0, cost: 1 },  // 右
+  { dx: 0, dy: 1, cost: 1 },  // 下
+  { dx: -1, dy: 0, cost: 1 }, // 左
 ];
 
 /**

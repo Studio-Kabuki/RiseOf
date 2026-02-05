@@ -446,6 +446,8 @@ export function RestaurantMap() {
         if (useEntityStore.getState().staff.length === 0) {
           addStaff();
         }
+        // スタッフ位置を同期（TMXから読み込んだ位置に設定）
+        useEntityStore.getState().syncStaffPositions();
 
         // お客さんは CustomerSystem が isOpen 時に自動スポーンする
 

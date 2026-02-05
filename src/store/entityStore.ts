@@ -4,7 +4,7 @@ import {
   CUSTOMER_SPEED,
   STAFF_SPEED,
   ENTRANCE_POSITION,
-  getStaffIdlePosition,
+  KITCHEN_POSITION,
 } from '../constants/game';
 
 // 待機列の位置（店の外）
@@ -33,6 +33,7 @@ interface EntityState {
   updateStaff: (id: string, updates: Partial<Staff>) => void;
   getStaff: (id: string) => Staff | undefined;
   resetAllStaff: () => void; // 全スタッフを定位置に戻す
+  syncStaffPositions: () => void; // スタッフの位置を定位置に同期
 
   // Reset
   reset: () => void;
@@ -50,7 +51,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
     const id = `customer-${++customerIdCounter}`;
     const customer: Customer = {
       id,
-      position: { ...ENTRANCE_POSITION },
+      position: getSpawnPosition(),
       speed: CUSTOMER_SPEED,
       state: 'entering',
       assignedSeatId: seatId,
@@ -115,7 +116,7 @@ export const useEntityStore = create<EntityState>((set, get) => ({
     updateCustomer(customerId, {
       state: 'entering',
       assignedSeatId: seatId,
-      position: { ...ENTRANCE_POSITION },
+      position: getSpawnPosition(),
     });
 
     // 残りの待機客の位置を更新
@@ -140,7 +141,11 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   addStaff: () => {
     const id = `staff-${++staffIdCounter}`;
     const currentStaffCount = get().staff.length;
-    const idlePosition = getStaffIdlePosition(currentStaffCount);
+    // 遅延参照を使用してスタッフ位置を取得
+    let idlePosition = { x: KITCHEN_POSITION.x + currentStaffCount * 30, y: KITCHEN_POSITION.y };
+    if (restaurantStoreRef) {
+      idlePosition = restaurantStoreRef.getState().getStaffPosition(currentStaffCount);
+    }
     // 統合スタッフ: 調理と配膳の両方を担当
     const staff: Staff = {
       id,
@@ -190,10 +195,17 @@ export const useEntityStore = create<EntityState>((set, get) => ({
   getStaff: (id) => get().staff.find((s) => s.id === id),
 
   resetAllStaff: () => {
+    // 遅延参照を使用してスタッフ位置を取得
+    const getPosition = (index: number) => {
+      if (restaurantStoreRef) {
+        return restaurantStoreRef.getState().getStaffPosition(index);
+      }
+      return { x: KITCHEN_POSITION.x + index * 30, y: KITCHEN_POSITION.y };
+    };
     set((state) => ({
       staff: state.staff.map((s, index) => ({
         ...s,
-        position: { ...getStaffIdlePosition(index) },
+        position: { ...getPosition(index) },
         state: 'idle' as const,
         currentOrderId: null,
         currentFood: null,
@@ -204,9 +216,55 @@ export const useEntityStore = create<EntityState>((set, get) => ({
     }));
   },
 
+  syncStaffPositions: () => {
+    // スタッフの位置を定位置に同期（ステートは変更しない）
+    const getPosition = (index: number) => {
+      if (restaurantStoreRef) {
+        return restaurantStoreRef.getState().getStaffPosition(index);
+      }
+      return { x: KITCHEN_POSITION.x + index * 30, y: KITCHEN_POSITION.y };
+    };
+    set((state) => ({
+      staff: state.staff.map((s, index) => ({
+        ...s,
+        position: { ...getPosition(index) },
+      })),
+    }));
+  },
+
   reset: () => {
     customerIdCounter = 0;
     staffIdCounter = 0;
     set({ customers: [], staff: [], waitingQueue: [] });
   },
 }));
+
+// 循環依存を避けるため、restaurantStoreへの遅延参照を提供
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let restaurantStoreRef: any = null;
+export const setRestaurantStoreRef = (store: unknown) => {
+  restaurantStoreRef = store;
+};
+
+// スポーン位置を取得するヘルパー
+export const getSpawnPosition = () => {
+  if (restaurantStoreRef) {
+    const spawnPoint = restaurantStoreRef.getState().getSpawnPoint();
+    if (spawnPoint) {
+      return { x: spawnPoint.x, y: spawnPoint.y };
+    }
+  }
+  return { ...ENTRANCE_POSITION };
+};
+
+// スタッフ位置を取得するヘルパー
+export const getStaffIdlePosition = (index: number) => {
+  if (restaurantStoreRef) {
+    return restaurantStoreRef.getState().getStaffPosition(index);
+  }
+  // フォールバック
+  return {
+    x: KITCHEN_POSITION.x + index * 30,
+    y: KITCHEN_POSITION.y,
+  };
+};
