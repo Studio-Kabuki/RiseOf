@@ -1,7 +1,7 @@
 id,name,description,iconUrl,cost,effectType,params
 string,string,string,string,number,string,string
-cheese,チーズ,売上 ×1.5（メインなら ×3）,https://img.icons8.com/fluency/48/cheese.png,1,category_bonus,multiplier=1.5;category=main;extraMultiplier=2.0
-addictive_spice,やみつきスパイス,購入されるたび売上 +1G,https://img.icons8.com/fluency/48/spice.png,1,stacking_bonus,stackValue=1
-joker_sauce,ジョーカーソース,全カテゴリを持つ,https://img.icons8.com/fluency/48/sauce.png,2,all_categories,
-extra_large,特盛,売上 ×2,https://img.icons8.com/fluency/48/plus-2-math.png,2,sales_multiplier,multiplier=2.0
-secret_recipe,秘伝のレシピ,売上 ×1.25（デザートなら ×2.5）,https://img.icons8.com/fluency/48/recipe.png,1,category_bonus,multiplier=1.25;category=dessert;extraMultiplier=2.0
+cheese,チーズ,売上 ×1.5（メインなら ×3）,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9c0.png,1,category_bonus,multiplier=1.5;category=main;extraMultiplier=2.0
+addictive_spice,やみつきスパイス,購入されるたび売上 +1G,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f336.png,1,stacking_bonus,stackValue=1
+joker_sauce,ジョーカーソース,全カテゴリを持つ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f96b.png,2,all_categories,
+extra_large,特盛,売上 ×2,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2795.png,2,sales_multiplier,multiplier=2.0
+secret_recipe,秘伝のレシピ,売上 ×1.25（デザートなら ×2.5）,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4dc.png,1,category_bonus,multiplier=1.25;category=dessert;extraMultiplier=2.0

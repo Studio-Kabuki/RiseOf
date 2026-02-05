@@ -1,12 +1,12 @@
 id,name,iconUrl,ability,params,description,cost,shopExclude
 string,string,string,string,string,string,number,boolean
-manager,店長,https://img.icons8.com/fluency/48/administrator-male.png,none,,初期スタッフ。能力はないが頼りになる,0,true
-fry_cook,フライクック,https://img.icons8.com/fluency/48/cook-male.png,category_bonus,category=snack;multiplier=2.0,スナック売上 ×2,1,false
-grill_master,グリルマスター,https://img.icons8.com/fluency/48/chef-hat.png,category_bonus,category=main;multiplier=2.0,メイン売上 ×2,1,false
-dessert_queen,デザートクイーン,https://img.icons8.com/fluency/48/waitress.png,category_bonus,category=dessert;multiplier=2.5,デザート売上 ×2.5,1,false
-speedy_waitress,俊足のベティ,https://img.icons8.com/fluency/48/waiter.png,customer_speed,value=2.0,来店スピード ×2,1,false
-newbie,新人バイトのジョン,https://img.icons8.com/fluency/48/employee-card.png,customer_speed,value=1.5,来店スピード ×1.5,1,false
-snack_base,スナック職人,https://img.icons8.com/fluency/48/french-fries.png,base_bonus,category=snack;value=30,スナック +30G,1,false
-main_base,メイン担当,https://img.icons8.com/fluency/48/hamburger.png,base_bonus,category=main;value=50,メイン +50G,1,false
-combo_master,コンボの達人,https://img.icons8.com/fluency/48/meal.png,set_bonus,requiredCategories=2;value=50,2種類以上で +50G,1,false
-fullcourse_chef,フルコースの巨匠,https://img.icons8.com/fluency/48/restaurant.png,full_course,requiredCategories=3;value=150,3種類以上で +150G,1,false
+manager,店長,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f468-200d-1f4bc.png,none,,初期スタッフ。能力はないが頼りになる,0,true
+fry_cook,フライクック,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f468-200d-1f373.png,category_bonus,category=snack;multiplier=2.0,スナック売上 ×2,1,false
+grill_master,グリルマスター,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d1-200d-1f373.png,category_bonus,category=main;multiplier=2.0,メイン売上 ×2,1,false
+dessert_queen,デザートクイーン,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f469-200d-1f373.png,category_bonus,category=dessert;multiplier=2.5,デザート売上 ×2.5,1,false
+speedy_waitress,俊足のベティ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3c3-200d-2640-fe0f.png,customer_speed,value=2.0,来店スピード ×2,1,false
+newbie,新人バイトのジョン,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f466.png,customer_speed,value=1.5,来店スピード ×1.5,1,false
+snack_base,スナック職人,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f477.png,base_bonus,category=snack;value=30,スナック +30G,1,false
+main_base,メイン担当,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f468.png,base_bonus,category=main;value=50,メイン +50G,1,false
+combo_master,コンボの達人,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f469.png,set_bonus,requiredCategories=2;value=50,2種類以上で +50G,1,false
+fullcourse_chef,フルコースの巨匠,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d4.png,full_course,requiredCategories=3;value=150,3種類以上で +150G,1,false
