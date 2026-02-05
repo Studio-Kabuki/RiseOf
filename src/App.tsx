@@ -10,6 +10,7 @@ import { StatusPanel } from './components/StatusPanel';
 import { PreparePhaseScreen } from './components/PreparePhaseScreen';
 import { WindowButton, Win98IconButton, Win98LargeButton } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
+import { useEventStore } from './store/eventStore';
 import { toggleDebugCollision } from './utils/pathfinding';
 import './App.css';
 
@@ -37,9 +38,11 @@ function App() {
   const { gameStarted, reset: resetMenu, startGame } = useMenuStore();
   const { reset: resetShop } = useShopStore();
   const { reset: resetStaff } = useStaffStore();
+  const { currentEvent, selectRandomEvent, reset: resetEvent } = useEventStore();
 
   const handleGameStart = () => {
     setShowGame(true);
+    selectRandomEvent(); // 最初の日のイベントを選択
     startGame();
   };
 
@@ -49,6 +52,7 @@ function App() {
     resetMenu();
     resetShop();
     resetStaff();
+    resetEvent();
     setShowGame(false);
   };
 
@@ -167,6 +171,35 @@ function App() {
               <>
                 <RestaurantMap />
                 <MoneyEffects />
+                {/* 今日のイベント表示 */}
+                {currentEvent && currentEvent.effectType !== 'none' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(255, 250, 205, 0.95)',
+                      border: '2px solid #DAA520',
+                      padding: '6px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>📢</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#800000' }}>
+                        {currentEvent.name}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#666666' }}>
+                        {currentEvent.description}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* 次の日へオーバーレイ */}
                 {canClose && isNormaAchieved() && (
                   <div

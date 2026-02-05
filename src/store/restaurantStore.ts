@@ -15,6 +15,7 @@ import {
   SEAT_COUNT,
 } from '../constants/game';
 import { useEntityStore, setRestaurantStoreRef } from './entityStore';
+import { useStaffStore } from './staffStore';
 
 // 初期レストラン設定
 const createInitialRestaurant = (): Restaurant => ({
@@ -594,6 +595,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   // TMXからスタッフ位置を設定
   setStaffPositions: (positions) => {
     set({ staffPositions: positions });
+    // スタッフ枠をタイルマップのスタッフオブジェクト数に設定
+    useStaffStore.getState().setMaxStaffSlots(positions.length);
   },
 
   // TMXからスポーン位置を設定

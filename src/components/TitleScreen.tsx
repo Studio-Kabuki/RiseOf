@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { loadMenusFromCSV } from '../data/menuLoader';
 import { loadStaffsFromCSV } from '../data/staffLoader';
+import { loadEventsFromCSV } from '../data/eventLoader';
 import titleImage from '../assets/title.png';
 
 interface TitleScreenProps {
@@ -14,7 +15,7 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        await Promise.all([loadMenusFromCSV(), loadStaffsFromCSV()]);
+        await Promise.all([loadMenusFromCSV(), loadStaffsFromCSV(), loadEventsFromCSV()]);
         setIsLoading(false);
       } catch (error) {
         setLoadError('データの読み込みに失敗しました');

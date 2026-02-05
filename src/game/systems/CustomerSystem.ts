@@ -4,6 +4,7 @@ import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore, createOrder, createComboFood } from '../../store/restaurantStore';
 import { useMenuStore } from '../../store/menuStore';
 import { useStaffStore } from '../../store/staffStore';
+import { useEventStore } from '../../store/eventStore';
 import { ORDERING_DELAY, EATING_TIME, EXIT_POSITION, CUSTOMER_SPAWN_DELAY } from '../../constants/game';
 import { calculateSales } from '../../utils/salesCalculator';
 import { createPathState, getNextWaypoint, isPathValid, type PathState } from '../../utils/pathfinding';
@@ -264,8 +265,9 @@ export class CustomerSystem implements GameSystem {
     updateCustomer: (id: string, updates: Partial<Customer>) => void
   ): void {
     const { customerSpeedMultiplier } = useStaffStore.getState();
-    // customerSpeedMultiplierで食事時間も短縮
-    const adjustedEatingTime = Math.max(0.5, EATING_TIME / customerSpeedMultiplier);
+    const eventSpeedMultiplier = useEventStore.getState().getCustomerSpeedMultiplier();
+    // customerSpeedMultiplierとイベント効果で食事時間も短縮
+    const adjustedEatingTime = Math.max(0.5, EATING_TIME / (customerSpeedMultiplier * eventSpeedMultiplier));
     const progress = customer.eatingProgress + deltaTime / adjustedEatingTime;
 
     if (progress >= 1) {
@@ -382,9 +384,10 @@ export class CustomerSystem implements GameSystem {
       return false;
     }
 
-    // customerSpeedMultiplierで移動速度も上げる
+    // customerSpeedMultiplier（スタッフ能力）とイベント効果で移動速度を上げる
     const { customerSpeedMultiplier } = useStaffStore.getState();
-    const moveDistance = customer.speed * deltaTime * customerSpeedMultiplier;
+    const eventSpeedMultiplier = useEventStore.getState().getCustomerSpeedMultiplier();
+    const moveDistance = customer.speed * deltaTime * customerSpeedMultiplier * eventSpeedMultiplier;
     const ratio = Math.min(moveDistance / distance, 1);
 
     updateCustomer(customer.id, {

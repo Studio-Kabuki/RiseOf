@@ -1,4 +1,5 @@
 import type { MenuItem } from '../types';
+import { useEventStore } from '../store/eventStore';
 
 /**
  * 売上計算のコンテキスト情報
@@ -21,8 +22,28 @@ export interface SalesResult {
 }
 
 /**
+ * メニューの価格にイベント効果を適用
+ */
+function applyEventEffects(menu: MenuItem): number {
+  const eventStore = useEventStore.getState();
+
+  // 基本価格
+  let price = menu.price;
+
+  // カテゴリボーナスを適用
+  const priceBonus = eventStore.getPriceBonus(menu.category);
+  price += priceBonus;
+
+  // 売上倍率を適用（特定メニュー用）
+  const salesMultiplier = eventStore.getSalesMultiplier(menu.id);
+  price = Math.floor(price * salesMultiplier);
+
+  return price;
+}
+
+/**
  * 登録された全メニューの売上とLIT獲得を計算
- * abilityを削除したので、単純にpriceの合計を返す
+ * イベント効果を適用
  */
 export function calculateSales(
   menus: MenuItem[],
@@ -31,7 +52,7 @@ export function calculateSales(
   let totalGold = 0;
 
   for (const menu of menus) {
-    totalGold += menu.price;
+    totalGold += applyEventEffects(menu);
   }
 
   return {
@@ -42,7 +63,7 @@ export function calculateSales(
 
 /**
  * 売上計算のプレビュー（確率要素を除く）
- * UIで価格表示に使用
+ * UIで価格表示に使用。イベント効果を適用
  */
 export function calculateSalesPreview(
   menus: MenuItem[],
@@ -51,7 +72,7 @@ export function calculateSalesPreview(
   let totalGold = 0;
 
   for (const menu of menus) {
-    totalGold += menu.price;
+    totalGold += applyEventEffects(menu);
   }
 
   return totalGold;

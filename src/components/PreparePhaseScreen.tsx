@@ -6,6 +6,7 @@ import { useRestaurantStore } from '../store/restaurantStore';
 import { getRandomMenuOptions } from '../data/menuPool';
 import type { MenuItem } from '../types';
 import type { StaffDefinition } from '../types/staffDefinition';
+import { CATEGORY_INFO } from '../types/menu';
 
 type ScreenPhase = 'menu' | 'staff';
 
@@ -79,6 +80,7 @@ function StaffResumeCard({ staff, disabled, onClick }: { staff: StaffDefinition;
 // 履歴書風カード（メニュー用）
 function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => void }) {
   const [isHovered, setIsHovered] = useState(false);
+  const categoryInfo = CATEGORY_INFO[menu.category];
 
   return (
     <div
@@ -112,12 +114,37 @@ function MenuResumeCard({ menu, onClick }: { menu: MenuItem; onClick?: () => voi
           <img src={menu.iconUrl} alt={menu.name} style={{ width: 40, height: 40 }} draggable={false} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 'bold', color: '#800000', marginBottom: 2 }}>
+          <div style={{ fontSize: 11, fontWeight: 'bold', color: '#800000', marginBottom: 4 }}>
             {menu.name}
           </div>
-          <div style={{ fontSize: 9, color: '#666666' }}>
-            {menu.price}円 / {menu.cookingTime}秒
+          {/* 価格表示（カテゴリ背景色） */}
+          <div
+            style={{
+              fontSize: 11,
+              color: '#FFFFFF',
+              fontWeight: 900,
+              fontFamily: 'inherit',
+              backgroundColor: categoryInfo.color,
+              padding: '2px 6px',
+              border: '1px solid rgba(0,0,0,0.3)',
+              textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+            }}
+          >
+            <span style={{ fontSize: 13 }}>{categoryInfo.icon}</span>
+            <span>{menu.price}G</span>
           </div>
+          {/* カテゴリ名 */}
+          <div style={{ fontSize: 9, color: '#666666', marginTop: 2 }}>
+            {categoryInfo.label}
+          </div>
+          {menu.description && (
+            <div style={{ fontSize: 8, color: '#666666', marginTop: 2 }}>
+              {menu.description}
+            </div>
+          )}
         </div>
       </div>
       <button
@@ -171,7 +198,7 @@ export function PreparePhaseScreen() {
   const { hiredStaff, maxStaffSlots } = useStaffStore();
   const { registeredMenus, addMenu, removeMenu } = useMenuStore();
 
-  const [phase, setPhase] = useState<ScreenPhase>('staff');
+  const [phase, setPhase] = useState<ScreenPhase>('menu'); // メニュー選択から開始
   const [menuOptions, setMenuOptions] = useState<MenuItem[]>([]);
 
   useEffect(() => {
@@ -189,20 +216,17 @@ export function PreparePhaseScreen() {
     // 既存のメニューをクリアして新しいのを追加
     registeredMenus.forEach((m) => removeMenu(m.id));
     addMenu(menu);
-    // 開店
-    openStore();
+    // スタッフ選択画面へ
+    setPhase('staff');
   };
 
   const handleSkipMenu = () => {
-    openStore();
-  };
-
-  const handleNext = () => {
-    setPhase('menu');
-  };
-
-  const handleBack = () => {
+    // スタッフ選択画面へ（メニューなしで）
     setPhase('staff');
+  };
+
+  const handleOpenStore = () => {
+    openStore();
   };
 
   const handleHire = (staffId: string) => {
@@ -257,11 +281,8 @@ export function PreparePhaseScreen() {
           </div>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <RetroButton onClick={handleBack}>
-              戻る
-            </RetroButton>
-            <RetroButton onClick={handleSkipMenu} color="#90EE90">
-              スキップして開店
+            <RetroButton onClick={handleSkipMenu}>
+              スキップ
             </RetroButton>
           </div>
         </div>
@@ -310,8 +331,8 @@ export function PreparePhaseScreen() {
           )}
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <RetroButton onClick={handleNext} color="#90EE90">
-              次へ
+            <RetroButton onClick={handleOpenStore} color="#90EE90">
+              開店する
             </RetroButton>
           </div>
         </div>

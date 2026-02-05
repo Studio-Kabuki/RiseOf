@@ -533,18 +533,6 @@
     </properties>
     <ellipse/>
    </object>
-   <object id="50" type="staff" x="240" y="272">
-    <properties>
-     <property name="index" type="int" value="2"/>
-    </properties>
-    <ellipse/>
-   </object>
-   <object id="51" type="staff" x="240" y="336">
-    <properties>
-     <property name="index" type="int" value="3"/>
-    </properties>
-    <ellipse/>
-   </object>
   </objectgroup>
   <layer id="65" name="マスク用のタイル" width="39" height="46">
    <data encoding="csv">

@@ -12,3 +12,8 @@ export type {
   StaffAbilityType,
   StaffParams,
 } from './staffDefinition';
+export type {
+  GameEvent,
+  EventEffectType,
+  EventEffectTarget,
+} from './event';

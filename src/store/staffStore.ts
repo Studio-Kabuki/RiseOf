@@ -31,6 +31,7 @@ interface StaffStoreState {
   reorderStaff: (fromIndex: number, toIndex: number) => void; // 順番入れ替え
   recalculateAbilities: () => void;
   increaseMaxSlots: () => void; // 店員枠を1増やす
+  setMaxStaffSlots: (slots: number) => void; // 店員枠を設定（タイルマップから）
   reset: () => void;
 }
 
@@ -179,6 +180,10 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
     set((state) => ({ maxStaffSlots: state.maxStaffSlots + 1 }));
   },
 
+  setMaxStaffSlots: (slots: number) => {
+    set({ maxStaffSlots: slots });
+  },
+
   reset: () => {
     set({
       hiredStaff: [],
@@ -189,5 +194,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       baseBonuses: {},
       categoryCountBonuses: [],
     });
+    // エンティティストアのスタッフ数も初期値にリセット
+    useEntityStore.getState().setStaffCount(INITIAL_STAFF_COUNT);
   },
 }));

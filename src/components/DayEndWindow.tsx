@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRestaurantStore, useShopStore, useMenuStore } from '../store';
 import { useEntityStore } from '../store/entityStore';
+import { useEventStore } from '../store/eventStore';
 import { LIT_PER_DAY } from '../constants/game';
 import { WindowDialog, WindowButton } from './ui';
 
@@ -25,6 +26,7 @@ export const DayEndWindow = () => {
   const { customers, clearAllCustomers, resetAllStaff } = useEntityStore();
   const { refreshLineup } = useShopStore();
   const { openMenuSelect } = useMenuStore();
+  const { selectRandomEvent } = useEventStore();
 
   // 家賃支払い状態の管理
   const [hasAttemptedPayment, setHasAttemptedPayment] = useState(false);
@@ -126,6 +128,7 @@ export const DayEndWindow = () => {
           const shouldShowUpgrade = nextDay >= 3 && nextDay % 3 === 0;
 
           refreshLineup();
+          selectRandomEvent(); // 次の日のイベントを選択
           startNextDay();
 
           if (shouldShowUpgrade) {

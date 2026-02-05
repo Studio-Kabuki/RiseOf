@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMenuStore } from '../store/menuStore';
 import { useStaffStore } from '../store/staffStore';
 import { useRestaurantStore } from '../store/restaurantStore';
+import { CATEGORY_INFO, type MenuCategory } from '../types/menu';
 
 // ファンファーレ演出の状態
 type FanfarePhase = 'idle' | 'animating' | 'waiting' | 'complete';
@@ -18,8 +19,8 @@ interface FanfareState {
 
 const FANFARE_GLOW_DURATION = 500;
 const FANFARE_STEP_DELAY = 200;
-const CARD_SIZE = 52; // カードサイズ
-const CARD_OVERLAP = 12; // 重なり幅
+const CARD_SIZE = 65; // カードサイズ（1.25倍）
+const CARD_OVERLAP = 15; // 重なり幅（1.25倍）
 const CARD_EFFECTIVE_WIDTH = CARD_SIZE - CARD_OVERLAP; // ドラッグ時の実効幅
 
 // Windows 98 スタイルの3Dパネル
@@ -76,6 +77,7 @@ interface CardProps {
   iconUrl: string;
   name: string;
   subText?: string;
+  category?: MenuCategory; // メニューカテゴリ（バッジ表示用）
   isGlowing?: boolean;
   isHovered?: boolean;
   isDragging?: boolean;
@@ -95,6 +97,7 @@ function Card({
   iconUrl,
   name,
   subText,
+  category,
   isGlowing,
   isHovered,
   isDragging,
@@ -115,6 +118,8 @@ function Card({
   const hoverTransform = isHovered && !isDragging ? 'translateY(-4px) scale(1.05)' : '';
   const combinedTransform = [slideTransform, dragTransform, hoverTransform].filter(Boolean).join(' ') || 'none';
 
+  const categoryInfo = category ? CATEGORY_INFO[category] : null;
+
   return (
     <div
       onMouseDown={onMouseDown}
@@ -126,7 +131,7 @@ function Card({
       onMouseLeave={onMouseLeave}
       style={{
         width: CARD_SIZE,
-        height: CARD_SIZE + 16,
+        height: CARD_SIZE + 20,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -155,15 +160,15 @@ function Card({
       <img
         src={iconUrl}
         alt={name}
-        style={{ width: 32, height: 32, marginBottom: 2, pointerEvents: 'none' }}
+        style={{ width: 40, height: 40, marginBottom: 2, pointerEvents: 'none' }}
         draggable={false}
       />
       <div
         style={{
-          fontSize: 9,
+          fontSize: 10,
           color: '#000000',
           textAlign: 'center',
-          maxWidth: CARD_SIZE - 4,
+          maxWidth: CARD_SIZE - 6,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -176,15 +181,23 @@ function Card({
       {subText && (
         <div
           style={{
-            fontSize: 8,
-            color: '#008000',
-            fontWeight: 'bold',
+            fontSize: 11,
+            color: '#FFFFFF',
+            fontWeight: 900,
             textAlign: 'center',
             fontFamily: 'inherit',
             pointerEvents: 'none',
+            backgroundColor: categoryInfo?.color || '#DAA520',
+            padding: '2px 6px',
+            border: `1px solid ${categoryInfo?.color ? 'rgba(0,0,0,0.3)' : '#B8860B'}`,
+            textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
           }}
         >
-          {subText}
+          <span style={{ fontSize: 13 }}>{categoryInfo?.icon || '🪙'}</span>
+          <span>{subText}G</span>
         </div>
       )}
     </div>
@@ -198,7 +211,7 @@ function EmptyCard({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       style={{
         width: CARD_SIZE,
-        height: CARD_SIZE + 16,
+        height: CARD_SIZE + 20,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -211,7 +224,7 @@ function EmptyCard({ onClick }: { onClick?: () => void }) {
         cursor: 'pointer',
       }}
     >
-      <span style={{ fontSize: 20, color: '#808080' }}>+</span>
+      <span style={{ fontSize: 24, color: '#808080' }}>+</span>
     </div>
   );
 }
@@ -692,7 +705,8 @@ export function StatusPanel() {
                           <Card
                             iconUrl={menu.iconUrl}
                             name={menu.name}
-                            subText={`${displayPrice}円`}
+                            subText={`${displayPrice}`}
+                            category={menu.category}
                             isGlowing={isGlowing}
                             isHovered={isHovered}
                             isDragging={isDragging}
@@ -750,8 +764,8 @@ export function StatusPanel() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: CARD_SIZE + 16,
-                height: CARD_SIZE + 16,
+                width: CARD_SIZE + 20,
+                height: CARD_SIZE + 20,
                 backgroundColor: dragState?.isOverTrash ? '#FFCCCC' : '#E8E8E8',
                 borderTop: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
                 borderLeft: dragState?.isOverTrash ? '2px solid #FF0000' : '1px solid #808080',
@@ -760,9 +774,9 @@ export function StatusPanel() {
                 transition: 'background-color 0.15s ease, border-color 0.15s ease',
               }}
             >
-              <span style={{ fontSize: 20 }}>🗑️</span>
+              <span style={{ fontSize: 24 }}>🗑️</span>
               <span style={{
-                fontSize: 9,
+                fontSize: 10,
                 color: dragState?.isOverTrash ? '#CC0000' : '#808080',
                 fontWeight: dragState?.isOverTrash ? 'bold' : 'normal',
               }}>
