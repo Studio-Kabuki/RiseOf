@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Application, Assets, Container } from 'pixi.js';
+import { Application, Assets, Container, Graphics } from 'pixi.js';
 import { GameEngine } from '../game';
 import { useEntityStore, useRestaurantStore } from '../store';
 import {
@@ -9,8 +9,9 @@ import {
 } from './sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
-import { parseTmxFile } from '../utils/tmxParser';
+import { parseTmxFile, initCollisionFromTmx } from '../utils/tmxParser';
 import { parseTmxForRendering, loadTilesetTextures, renderTmxMap } from '../utils/tmxRenderer';
+import { getGridInfo, onDebugCollisionChange, isDebugCollisionVisible } from '../utils/pathfinding';
 
 // カメラ制御の定数
 const MIN_ZOOM = 0.3; // より広い視野でズームアウト可能
@@ -31,6 +32,8 @@ export function RestaurantMap() {
 
   // カメラ制御用
   const worldContainerRef = useRef<Container | null>(null);
+  // デバッグ表示用
+  const debugGraphicsRef = useRef<Graphics | null>(null);
   const cameraStateRef = useRef({
     scale: MIN_ZOOM, // 最もズームアウトした状態をデフォルトに
     x: 0,
@@ -44,7 +47,7 @@ export function RestaurantMap() {
 
   // Store
   const { addStaff } = useEntityStore();
-  const { restaurant, setTables } = useRestaurantStore();
+  const { restaurant, setTables, setStaffPositions, setSpawnPoints } = useRestaurantStore();
 
   // スプライト更新
   const updateSprites = () => {
@@ -137,6 +140,15 @@ export function RestaurantMap() {
           return;
         }
 
+        // デバッグ: キャンバスサイズを出力
+        console.log('[Canvas Debug]', {
+          logicalSize: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT },
+          physicalSize: { width: app.canvas.width, height: app.canvas.height },
+          cssSize: { width: app.canvas.style.width, height: app.canvas.style.height },
+          devicePixelRatio: window.devicePixelRatio,
+          resolution: app.renderer.resolution,
+        });
+
         // CSVからメニューを読み込み（TitleScreenで既にロード済みだがキャッシュから取得）
         await loadMenusFromCSV();
         const menuPool = getMenuPool();
@@ -174,29 +186,51 @@ export function RestaurantMap() {
           // テーブル・座席情報も取得
           const tmxData = await parseTmxFile(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
 
+          // コリジョングリッドを初期化
+          initCollisionFromTmx(tmxData);
+
           // マップサイズを取得してキャンバスに収まるスケールを計算
           const mapWidth = tmxMapContainer.width;
           const mapHeight = tmxMapContainer.height;
           const fitScale = Math.min(CANVAS_WIDTH / mapWidth, CANVAS_HEIGHT / mapHeight);
+
+          console.log('[Map Debug]', {
+            mapWidth,
+            mapHeight,
+            fitScale,
+            canvasWidth: CANVAS_WIDTH,
+            canvasHeight: CANVAS_HEIGHT,
+          });
 
           // カメラのスケールを設定（マップ全体が見えるように）
           const camera = cameraStateRef.current;
           camera.scale = fitScale;
           worldContainer.scale.set(camera.scale);
 
-          // camera_centerがあればそこを中心に、なければマップ全体を中央に配置
+          // camera_centerがキャンバス中央に来るように配置
           if (tmxData.cameraCenter) {
-            camera.x = CANVAS_WIDTH / 2 - tmxData.cameraCenter.x * camera.scale;
-            camera.y = CANVAS_HEIGHT / 2 - tmxData.cameraCenter.y * camera.scale;
+            camera.x = Math.round(CANVAS_WIDTH / 2 - tmxData.cameraCenter.x * camera.scale);
+            camera.y = Math.round(CANVAS_HEIGHT / 2 - tmxData.cameraCenter.y * camera.scale);
+            console.log('[Camera] Using camera_center:', tmxData.cameraCenter, 'result:', { x: camera.x, y: camera.y });
           } else {
-            camera.x = (CANVAS_WIDTH - mapWidth * camera.scale) / 2;
-            camera.y = (CANVAS_HEIGHT - mapHeight * camera.scale) / 2;
+            // フォールバック：マップを中央に配置
+            camera.x = Math.round((CANVAS_WIDTH - mapWidth * camera.scale) / 2);
+            camera.y = Math.round((CANVAS_HEIGHT - mapHeight * camera.scale) / 2);
           }
           worldContainer.x = camera.x;
           worldContainer.y = camera.y;
           if (tmxData.tables.length > 0) {
             setTables(tmxData.tables);
             console.log('[TMX] Loaded tables from TMX:', tmxData.tables);
+          }
+          // スタッフ位置とスポーン位置を設定
+          if (tmxData.staffPositions.length > 0) {
+            setStaffPositions(tmxData.staffPositions);
+            console.log('[TMX] Loaded staff positions:', tmxData.staffPositions);
+          }
+          if (tmxData.spawnPoints.length > 0) {
+            setSpawnPoints(tmxData.spawnPoints);
+            console.log('[TMX] Loaded spawn points:', tmxData.spawnPoints);
           }
         } catch (tmxError) {
           console.error('[TMX] Failed to load TMX:', tmxError);
@@ -211,6 +245,50 @@ export function RestaurantMap() {
         const dynamicContainer = new Container();
         worldContainer.addChild(dynamicContainer);
         dynamicContainerRef.current = dynamicContainer;
+
+        // デバッグ表示用Graphics
+        const debugGraphics = new Graphics();
+        debugGraphics.visible = isDebugCollisionVisible();
+        worldContainer.addChild(debugGraphics);
+        debugGraphicsRef.current = debugGraphics;
+
+        // コリジョングリッドを描画する関数
+        const drawCollisionGrid = () => {
+          debugGraphics.clear();
+          const gridInfo = getGridInfo();
+          if (!gridInfo.grid.length) return;
+
+          for (let gy = 0; gy < gridInfo.height; gy++) {
+            for (let gx = 0; gx < gridInfo.width; gx++) {
+              const isCollision = gridInfo.grid[gy]?.[gx];
+              const x = gx * gridInfo.cellSize + gridInfo.offsetX;
+              const y = gy * gridInfo.cellSize + gridInfo.offsetY;
+
+              if (isCollision) {
+                // コリジョンセルは赤で表示
+                debugGraphics.rect(x, y, gridInfo.cellSize, gridInfo.cellSize);
+                debugGraphics.fill({ color: 0xff0000, alpha: 0.4 });
+              } else {
+                // 通行可能セルはグリッド線のみ
+                debugGraphics.rect(x, y, gridInfo.cellSize, gridInfo.cellSize);
+                debugGraphics.stroke({ color: 0x00ff00, alpha: 0.1, width: 0.5 });
+              }
+            }
+          }
+        };
+
+        // 初回描画
+        if (debugGraphics.visible) {
+          drawCollisionGrid();
+        }
+
+        // デバッグ表示切り替えリスナー
+        onDebugCollisionChange((visible) => {
+          debugGraphics.visible = visible;
+          if (visible) {
+            drawCollisionGrid();
+          }
+        });
 
         // カメラ制御のイベントハンドラー
         const canvas = app.canvas;

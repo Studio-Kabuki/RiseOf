@@ -3,6 +3,15 @@ import type { Staff, Position, Order } from '../../types';
 import { useEntityStore } from '../../store/entityStore';
 import { useRestaurantStore } from '../../store/restaurantStore';
 import { useStaffStore } from '../../store/staffStore';
+import {
+  type PathState,
+  createPathState,
+  getNextWaypoint,
+  isPathValid,
+} from '../../utils/pathfinding';
+
+// 配膳完了とみなす距離（ピクセル）
+const SERVING_DISTANCE = 20;
 
 /**
  * 統合スタッフシステム
@@ -21,6 +30,8 @@ import { useStaffStore } from '../../store/staffStore';
 export class StaffSystem implements GameSystem {
   // 現在のフレームで既に担当が決まった注文IDを追跡
   private claimedOrderIds: Set<string> = new Set();
+  // スタッフごとの経路状態
+  private pathStates: Map<string, PathState> = new Map();
 
   /**
    * 注文が他のスタッフに既に担当されているかチェック
@@ -57,6 +68,7 @@ export class StaffSystem implements GameSystem {
 
       // 閉店処理中：全員即座にidleにして定位置に戻す
       if (isClosing && s.state !== 'idle') {
+        this.clearPathState(s.id);
         updateStaff(s.id, {
           state: 'idle',
           carryingFood: null,
@@ -353,11 +365,13 @@ export class StaffSystem implements GameSystem {
       return;
     }
 
+    // 配膳はSERVING_DISTANCEまで近づいたら完了とみなす
     const arrived = this.moveTowards(
       staff,
       targetCustomer.position,
       deltaTime,
-      updateStaff
+      updateStaff,
+      SERVING_DISTANCE
     );
 
     if (arrived) {
@@ -461,24 +475,57 @@ export class StaffSystem implements GameSystem {
   }
 
   /**
-   * 目標位置へ移動する
+   * 目標位置へ経路探索で移動する
    * @returns 到着したかどうか
    */
   private moveTowards(
     staff: Staff,
     target: Position,
     deltaTime: number,
-    updateStaff: (id: string, updates: Partial<Staff>) => void
+    updateStaff: (id: string, updates: Partial<Staff>) => void,
+    arrivalDistance: number = 2
   ): boolean {
-    const dx = target.x - staff.position.x;
-    const dy = target.y - staff.position.y;
+    // 最終目標までの距離をチェック
+    const dxFinal = target.x - staff.position.x;
+    const dyFinal = target.y - staff.position.y;
+    const distanceToTarget = Math.sqrt(dxFinal * dxFinal + dyFinal * dyFinal);
+
+    // 到着判定
+    if (distanceToTarget <= arrivalDistance) {
+      // 経路状態をクリア
+      this.pathStates.delete(staff.id);
+      return true;
+    }
+
+    // 経路状態を取得または作成
+    let pathState = this.pathStates.get(staff.id);
+    if (!pathState || !isPathValid(pathState, target)) {
+      // 新しい経路を計算
+      pathState = createPathState(staff.position, target);
+      this.pathStates.set(staff.id, pathState);
+    }
+
+    // 次のウェイポイントを取得
+    const waypoint = getNextWaypoint(pathState, staff.position, 8);
+
+    // 移動先を決定（ウェイポイントがなければ最終目標に直接向かう）
+    let moveTarget: Position;
+    if (!waypoint) {
+      // 経路完了、最終目標に直接向かう
+      this.pathStates.delete(staff.id);
+      moveTarget = target;
+    } else {
+      moveTarget = waypoint;
+    }
+
+    // 移動先に向かって移動
+    const dx = moveTarget.x - staff.position.x;
+    const dy = moveTarget.y - staff.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance < 2) {
-      updateStaff(staff.id, {
-        position: { x: target.x, y: target.y },
-      });
-      return true;
+    if (distance < 1) {
+      // ウェイポイントに到達
+      return false;
     }
 
     const moveDistance = staff.speed * deltaTime;
@@ -492,5 +539,12 @@ export class StaffSystem implements GameSystem {
     });
 
     return false;
+  }
+
+  /**
+   * スタッフの経路状態をクリア
+   */
+  private clearPathState(staffId: string): void {
+    this.pathStates.delete(staffId);
   }
 }

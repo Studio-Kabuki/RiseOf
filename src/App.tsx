@@ -10,6 +10,7 @@ import { StatusPanel } from './components/StatusPanel';
 import { PreparePhaseScreen } from './components/PreparePhaseScreen';
 import { WindowButton, Win98IconButton, Win98LargeButton, CRTOverlay } from './components/ui';
 import { useRestaurantStore, useEntityStore, useMenuStore, useShopStore, useStaffStore } from './store';
+import { toggleDebugCollision } from './utils/pathfinding';
 import './App.css';
 
 // Windows 98 スタイルの3Dパネル
@@ -30,6 +31,7 @@ const Panel3D = ({ children, inset = false, style = {} }: { children: React.Reac
 
 function App() {
   const [showGame, setShowGame] = useState(false);
+  const [showDebugCollision, setShowDebugCollision] = useState(false);
   const { isPaused, togglePause, gameSpeed, cycleSpeed, reset: resetRestaurant, isOpen, canClose, isNormaAchieved, triggerClose } = useRestaurantStore();
   const { reset: resetEntities } = useEntityStore();
   const { gameStarted, reset: resetMenu, startGame } = useMenuStore();
@@ -229,6 +231,15 @@ function App() {
 
             <WindowButton onClick={handleReset}>
               リセット
+            </WindowButton>
+
+            <WindowButton
+              onClick={() => {
+                const newState = toggleDebugCollision();
+                setShowDebugCollision(newState);
+              }}
+            >
+              {showDebugCollision ? '🔲 当たり判定' : '当たり判定'}
             </WindowButton>
           </Panel3D>
         </div>
