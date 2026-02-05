@@ -195,7 +195,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   showUpgrade: false,
   lastUpgradeDay: 0,
   seatCount: SEAT_COUNT,
-  tableUnlockLevel: 2, // 初期は index <= 2 のテーブルを解放
+  tableUnlockLevel: 0, // 初期は index == 0 のテーブルのみ解放
 
   // お金エフェクト
   moneyEffects: [],
@@ -707,7 +707,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       showUpgrade: false,
       lastUpgradeDay: 0,
       seatCount: SEAT_COUNT,
-      tableUnlockLevel: 2, // 初期解放レベルにリセット
+      tableUnlockLevel: 0, // 初期解放レベルにリセット（index=0のみ）
       // エフェクトのリセット
       moneyEffects: [],
     });

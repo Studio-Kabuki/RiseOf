@@ -41,6 +41,9 @@ export function RestaurantMap() {
   // デバッグ表示用
   const debugGraphicsRef = useRef<Graphics | null>(null);
   const debugUnsubscribeRef = useRef<(() => void) | null>(null);
+  // テーブルコンテナ参照（解放レベルによる表示切替用）
+  const tableContainersRef = useRef<Map<number, Container> | null>(null);
+  const tableUnsubscribeRef = useRef<(() => void) | null>(null);
   const cameraStateRef = useRef({
     scale: MIN_ZOOM, // 最もズームアウトした状態をデフォルトに
     x: 0,
@@ -189,8 +192,11 @@ export function RestaurantMap() {
           // タイルセット画像をロード
           await loadTilesetTextures(tmxRenderData.tilesets);
           // TMXマップを描画（ネイティブサイズ）
-          const tmxMapContainer = renderTmxMap(tmxRenderData);
+          const tmxRenderResult = renderTmxMap(tmxRenderData);
+          const tmxMapContainer = tmxRenderResult.container;
           worldContainer.addChild(tmxMapContainer);
+          // テーブルコンテナへの参照を保存
+          tableContainersRef.current = tmxRenderResult.tableContainers;
           console.log('[TMX] Rendered tilemap');
 
           // テーブル・座席情報も取得
@@ -242,6 +248,29 @@ export function RestaurantMap() {
             setSpawnPoints(tmxData.spawnPoints);
             console.log('[TMX] Loaded spawn points:', tmxData.spawnPoints);
           }
+
+          // テーブル表示を解放レベルに応じて更新する関数
+          const updateTableVisibility = (unlockLevel: number) => {
+            const containers = tableContainersRef.current;
+            if (!containers) return;
+            containers.forEach((container, index) => {
+              container.visible = index <= unlockLevel;
+            });
+            console.log(`[TMX] Table visibility updated: unlockLevel=${unlockLevel}`);
+          };
+
+          // 初期表示を設定
+          const initialUnlockLevel = useRestaurantStore.getState().tableUnlockLevel;
+          updateTableVisibility(initialUnlockLevel);
+
+          // tableUnlockLevelの変更を監視
+          let prevUnlockLevel = initialUnlockLevel;
+          tableUnsubscribeRef.current = useRestaurantStore.subscribe((state) => {
+            if (state.tableUnlockLevel !== prevUnlockLevel) {
+              prevUnlockLevel = state.tableUnlockLevel;
+              updateTableVisibility(state.tableUnlockLevel);
+            }
+          });
         } catch (tmxError) {
           console.error('[TMX] Failed to load TMX:', tmxError);
         }
@@ -540,6 +569,12 @@ export function RestaurantMap() {
         debugUnsubscribeRef.current();
         debugUnsubscribeRef.current = null;
       }
+      // テーブル解放リスナーを解除
+      if (tableUnsubscribeRef.current) {
+        tableUnsubscribeRef.current();
+        tableUnsubscribeRef.current = null;
+      }
+      tableContainersRef.current = null;
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();

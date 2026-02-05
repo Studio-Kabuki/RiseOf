@@ -1,7 +1,7 @@
 import { useRestaurantStore, useMenuStore, useStaffStore } from '../store';
 import { WindowDialog, WindowButton } from './ui';
 
-type UpgradeType = 'seat' | 'staff' | 'menu';
+type UpgradeType = 'table' | 'staff' | 'menu';
 
 interface UpgradeOption {
   type: UpgradeType;
@@ -12,9 +12,9 @@ interface UpgradeOption {
 
 const upgradeOptions: UpgradeOption[] = [
   {
-    type: 'seat',
-    title: 'テーブル追加',
-    description: '新しいテーブル（4席）を追加',
+    type: 'table',
+    title: 'テーブル解放',
+    description: '新しいテーブルを解放',
     icon: 'https://img.icons8.com/fluency/48/dining-table.png',
   },
   {
@@ -32,16 +32,19 @@ const upgradeOptions: UpgradeOption[] = [
 ];
 
 export function UpgradeWindow() {
-  const { showUpgrade, closeUpgrade, addSeat, seatCount, currentDay } = useRestaurantStore();
+  const { showUpgrade, closeUpgrade, unlockNextTable, seatCount, currentDay, tableUnlockLevel, restaurant } = useRestaurantStore();
   const { increaseMaxMenuSlots, maxMenuSlots, openMenuSelect } = useMenuStore();
   const { increaseMaxSlots, maxStaffSlots } = useStaffStore();
+
+  // 解放可能なテーブルがあるか確認
+  const hasMoreTables = restaurant.tables.some((t) => t.index !== undefined && t.index > tableUnlockLevel);
 
   if (!showUpgrade) return null;
 
   const handleUpgrade = (type: UpgradeType) => {
     switch (type) {
-      case 'seat':
-        addSeat();
+      case 'table':
+        unlockNextTable();
         break;
       case 'staff':
         increaseMaxSlots();
@@ -85,35 +88,41 @@ export function UpgradeWindow() {
           marginBottom: '16px',
         }}
       >
-        {upgradeOptions.map((option) => (
+        {upgradeOptions.map((option) => {
+          const isDisabled = option.type === 'table' && !hasMoreTables;
+          return (
           <div
             key={option.type}
-            onClick={() => handleUpgrade(option.type)}
+            onClick={() => !isDisabled && handleUpgrade(option.type)}
             style={{
               width: '120px',
               padding: '16px 12px',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: isDisabled ? '#E0E0E0' : '#FFFFFF',
               borderTop: '2px solid #DFDFDF',
               borderLeft: '2px solid #DFDFDF',
               borderBottom: '2px solid #808080',
               borderRight: '2px solid #808080',
-              cursor: 'pointer',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
               textAlign: 'center',
               transition: 'none',
+              opacity: isDisabled ? 0.6 : 1,
             }}
             onMouseDown={(e) => {
+              if (isDisabled) return;
               e.currentTarget.style.borderTop = '2px solid #808080';
               e.currentTarget.style.borderLeft = '2px solid #808080';
               e.currentTarget.style.borderBottom = '2px solid #DFDFDF';
               e.currentTarget.style.borderRight = '2px solid #DFDFDF';
             }}
             onMouseUp={(e) => {
+              if (isDisabled) return;
               e.currentTarget.style.borderTop = '2px solid #DFDFDF';
               e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
               e.currentTarget.style.borderBottom = '2px solid #808080';
               e.currentTarget.style.borderRight = '2px solid #808080';
             }}
             onMouseLeave={(e) => {
+              if (isDisabled) return;
               e.currentTarget.style.borderTop = '2px solid #DFDFDF';
               e.currentTarget.style.borderLeft = '2px solid #DFDFDF';
               e.currentTarget.style.borderBottom = '2px solid #808080';
@@ -132,12 +141,18 @@ export function UpgradeWindow() {
               {option.description}
             </div>
             <div style={{ fontSize: '9px', color: '#999', marginTop: '4px' }}>
-              {option.type === 'seat' && `現在: ${seatCount}席`}
+              {option.type === 'table' && `現在: ${seatCount}席`}
               {option.type === 'staff' && `現在: ${maxStaffSlots}枠`}
               {option.type === 'menu' && `現在: ${maxMenuSlots}枠`}
             </div>
+            {option.type === 'table' && !hasMoreTables && (
+              <div style={{ fontSize: '8px', color: '#ff6600', marginTop: '2px' }}>
+                (全解放済み)
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ textAlign: 'center' }}>

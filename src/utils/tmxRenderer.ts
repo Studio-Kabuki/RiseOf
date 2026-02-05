@@ -49,10 +49,32 @@ interface GroupData {
   offsetX: number;
   offsetY: number;
   children: TmxChild[];
+  tableIndex?: number; // class="table"のグループ用のindex
 }
 
-// レイヤーまたはグループ
-type TmxChild = LayerData | GroupData;
+// タイルオブジェクト（gidを持つオブジェクト）
+interface TileObjectData {
+  gid: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// オブジェクトグループ情報（decoration用）
+interface ObjectgroupData {
+  type: 'objectgroup';
+  id: number;
+  name: string;
+  class?: string;
+  visible: boolean;
+  offsetX: number;
+  offsetY: number;
+  tileObjects: TileObjectData[]; // gidを持つオブジェクト（タイル配置）
+}
+
+// レイヤー、グループ、またはオブジェクトグループ
+type TmxChild = LayerData | GroupData | ObjectgroupData;
 
 // TMXマップ全体のデータ
 export interface TmxRenderData {
@@ -60,6 +82,12 @@ export interface TmxRenderData {
   tileHeight: number;
   tilesets: TilesetData[];
   children: TmxChild[];
+}
+
+// レンダリング結果
+export interface TmxRenderResult {
+  container: Container;
+  tableContainers: Map<number, Container>; // tableIndex -> Container
 }
 
 // タイルセットをパース
@@ -130,6 +158,60 @@ function parseLayer(layerEl: Element, parentOffsetX: number, parentOffsetY: numb
   return { type: 'layer', id, name, class: layerClass, visible, offsetX, offsetY, chunks };
 }
 
+// プロパティを取得（TMX固有）
+function getProperty(element: Element, propertyName: string): string | null {
+  const propEl = element.querySelector(`:scope > properties > property[name="${propertyName}"]`);
+  if (propEl) {
+    return propEl.getAttribute('value');
+  }
+  return null;
+}
+
+// オブジェクトグループをパース（decoration用）
+function parseObjectgroup(
+  objgroupEl: Element,
+  parentOffsetX: number,
+  parentOffsetY: number
+): ObjectgroupData | null {
+  const id = parseInt(objgroupEl.getAttribute('id') || '0', 10);
+  const name = objgroupEl.getAttribute('name') || '';
+  const objgroupClass = objgroupEl.getAttribute('class') || undefined;
+  const visible = objgroupEl.getAttribute('visible') !== '0';
+  const offsetX = parseFloat(objgroupEl.getAttribute('offsetx') || '0') + parentOffsetX;
+  const offsetY = parseFloat(objgroupEl.getAttribute('offsety') || '0') + parentOffsetY;
+
+  // gidを持つオブジェクト（タイルオブジェクト）を抽出
+  const tileObjects: TileObjectData[] = [];
+  const objects = objgroupEl.querySelectorAll(':scope > object');
+  for (const obj of objects) {
+    const gidStr = obj.getAttribute('gid');
+    if (gidStr) {
+      const gid = parseInt(gidStr, 10);
+      const x = parseFloat(obj.getAttribute('x') || '0');
+      const y = parseFloat(obj.getAttribute('y') || '0');
+      const width = parseFloat(obj.getAttribute('width') || '16');
+      const height = parseFloat(obj.getAttribute('height') || '16');
+      tileObjects.push({ gid, x, y, width, height });
+    }
+  }
+
+  // タイルオブジェクトがなければスキップ
+  if (tileObjects.length === 0) {
+    return null;
+  }
+
+  return {
+    type: 'objectgroup',
+    id,
+    name,
+    class: objgroupClass,
+    visible,
+    offsetX,
+    offsetY,
+    tileObjects,
+  };
+}
+
 // グループをパース（再帰的）
 function parseGroup(groupEl: Element, parentOffsetX: number, parentOffsetY: number): GroupData {
   const id = parseInt(groupEl.getAttribute('id') || '0', 10);
@@ -139,6 +221,13 @@ function parseGroup(groupEl: Element, parentOffsetX: number, parentOffsetY: numb
   const offsetX = parseFloat(groupEl.getAttribute('offsetx') || '0') + parentOffsetX;
   const offsetY = parseFloat(groupEl.getAttribute('offsety') || '0') + parentOffsetY;
 
+  // class="table"のグループからindexを取得
+  let tableIndex: number | undefined;
+  if (groupClass === 'table') {
+    const indexStr = getProperty(groupEl, 'index');
+    tableIndex = indexStr ? parseInt(indexStr, 10) : undefined;
+  }
+
   const children: TmxChild[] = [];
 
   for (const child of groupEl.children) {
@@ -146,10 +235,20 @@ function parseGroup(groupEl: Element, parentOffsetX: number, parentOffsetY: numb
       children.push(parseLayer(child, offsetX, offsetY));
     } else if (child.tagName === 'group') {
       children.push(parseGroup(child, offsetX, offsetY));
+    } else if (child.tagName === 'objectgroup') {
+      // class="decoration"または特定の名前のオブジェクトグループをレンダリング対象に
+      const objgroupClass = child.getAttribute('class');
+      const objgroupName = child.getAttribute('name') || '';
+      if (objgroupClass === 'decoration' || objgroupName === '飾り') {
+        const objgroup = parseObjectgroup(child, offsetX, offsetY);
+        if (objgroup) {
+          children.push(objgroup);
+        }
+      }
     }
   }
 
-  return { type: 'group', id, name, class: groupClass, visible, offsetX, offsetY, children };
+  return { type: 'group', id, name, class: groupClass, visible, offsetX, offsetY, children, tableIndex };
 }
 
 // TMXファイルをパースしてレンダリングデータを取得
@@ -190,6 +289,16 @@ export async function parseTmxForRendering(tmxUrl: string): Promise<TmxRenderDat
       children.push(parseLayer(child, 0, 0));
     } else if (child.tagName === 'group') {
       children.push(parseGroup(child, 0, 0));
+    } else if (child.tagName === 'objectgroup') {
+      // トップレベルのclass="decoration"または特定名のオブジェクトグループも対象
+      const objgroupClass = child.getAttribute('class');
+      const objgroupName = child.getAttribute('name') || '';
+      if (objgroupClass === 'decoration' || objgroupName === '飾り') {
+        const objgroup = parseObjectgroup(child, 0, 0);
+        if (objgroup) {
+          children.push(objgroup);
+        }
+      }
     }
   }
 
@@ -319,17 +428,57 @@ function renderLayer(
   return container;
 }
 
-// 子要素を描画（レイヤーまたはグループ）
-function renderChild(
-  child: TmxChild,
+// オブジェクトグループを描画（decoration用タイルオブジェクト）
+function renderObjectgroup(
+  objgroup: ObjectgroupData,
   tilesets: TilesetData[],
   tileWidth: number,
   tileHeight: number
 ): Container {
+  const container = new Container();
+  container.x = objgroup.offsetX;
+  container.y = objgroup.offsetY;
+  container.visible = objgroup.visible;
+
+  // タイルオブジェクトをスプライトとして配置
+  const tilemap = new CompositeTilemap();
+  container.addChild(tilemap);
+
+  for (const tileObj of objgroup.tileObjects) {
+    const tileInfo = getTileFrame(tileObj.gid, tilesets);
+    if (!tileInfo) continue;
+
+    // Tiledのタイルオブジェクトは左下原点なので、Y座標を調整
+    // (x, y)は左下の座標、タイルの高さ分上にずらす
+    const worldX = tileObj.x;
+    const worldY = tileObj.y - tileObj.height;
+
+    tilemap.tile(tileInfo.texture, worldX, worldY, {
+      u: tileInfo.frame.x,
+      v: tileInfo.frame.y,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      rotate: tileInfo.rotate,
+    });
+  }
+
+  return container;
+}
+
+// 子要素を描画（レイヤー、グループ、またはオブジェクトグループ）
+function renderChild(
+  child: TmxChild,
+  tilesets: TilesetData[],
+  tileWidth: number,
+  tileHeight: number,
+  tableContainers: Map<number, Container>
+): Container {
   if (child.type === 'layer') {
     return renderLayer(child, tilesets, tileWidth, tileHeight);
+  } else if (child.type === 'objectgroup') {
+    return renderObjectgroup(child, tilesets, tileWidth, tileHeight);
   } else {
-    return renderGroup(child, tilesets, tileWidth, tileHeight);
+    return renderGroup(child, tilesets, tileWidth, tileHeight, tableContainers);
   }
 }
 
@@ -338,31 +487,39 @@ function renderGroup(
   group: GroupData,
   tilesets: TilesetData[],
   tileWidth: number,
-  tileHeight: number
+  tileHeight: number,
+  tableContainers: Map<number, Container>
 ): Container {
   const container = new Container();
   container.visible = group.visible;
 
   // 子要素を順序通りに描画
   for (const child of group.children) {
-    const childContainer = renderChild(child, tilesets, tileWidth, tileHeight);
+    const childContainer = renderChild(child, tilesets, tileWidth, tileHeight, tableContainers);
     container.addChild(childContainer);
+  }
+
+  // テーブルグループの場合、参照を保存
+  if (group.class === 'table' && group.tableIndex !== undefined) {
+    tableContainers.set(group.tableIndex, container);
+    console.log(`[TMX] Registered table container: index=${group.tableIndex}, name=${group.name}`);
   }
 
   return container;
 }
 
 // TMXマップ全体を描画
-export function renderTmxMap(data: TmxRenderData): Container {
+export function renderTmxMap(data: TmxRenderData): TmxRenderResult {
   const container = new Container();
+  const tableContainers = new Map<number, Container>();
 
   // 子要素を順序通りに描画
   for (const child of data.children) {
-    const childContainer = renderChild(child, data.tilesets, data.tileWidth, data.tileHeight);
+    const childContainer = renderChild(child, data.tilesets, data.tileWidth, data.tileHeight, tableContainers);
     container.addChild(childContainer);
   }
 
-  console.log(`[TMX] Rendered ${data.children.length} top-level elements`);
+  console.log(`[TMX] Rendered ${data.children.length} top-level elements, ${tableContainers.size} table groups`);
 
-  return container;
+  return { container, tableContainers };
 }
