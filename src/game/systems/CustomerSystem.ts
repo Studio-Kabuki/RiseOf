@@ -40,7 +40,7 @@ export class CustomerSystem implements GameSystem {
         // 食事中・支払い中の場合はお金を払う（特殊能力を考慮した売上計算）
         if (customer.state === 'eating' || customer.state === 'paying') {
           const { registeredMenus } = useMenuStore.getState();
-          const { todayCustomerCount, addLit } = useRestaurantStore.getState();
+          const { todayCustomerCount, addLit, removeMeal } = useRestaurantStore.getState();
 
           const salesContext = {
             registeredMenus,
@@ -54,6 +54,11 @@ export class CustomerSystem implements GameSystem {
 
           if (salesResult.earnedLit > 0) {
             addLit(salesResult.earnedLit);
+          }
+
+          // テーブル上の料理を削除（食事中の場合）
+          if (customer.state === 'eating') {
+            removeMeal(customer.id);
           }
         }
         // 座席を解放
@@ -290,7 +295,10 @@ export class CustomerSystem implements GameSystem {
   ): void {
     // 売上計算（特殊能力を考慮）
     const { registeredMenus, incrementStackCount, getMenuSeasoning, getSeasoningDefinition } = useMenuStore.getState();
-    const { todayCustomerCount, addLit, addMoneyEffect } = useRestaurantStore.getState();
+    const { todayCustomerCount, addLit, addMoneyEffect, removeMeal } = useRestaurantStore.getState();
+
+    // テーブル上の料理を削除
+    removeMeal(customer.id);
 
     // 今回の会計は todayCustomerCount + 1 人目（recordCustomerServed前なので）
     const salesContext = {

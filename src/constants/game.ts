@@ -192,6 +192,12 @@ export const ICONS = {
     delivering: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d1-200d-1f373.png',
     serving: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f374.png',
   },
+  // テーブル上の料理アイコン（カテゴリ別）
+  tableMeal: {
+    snack: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35f.png',    // フライドポテト
+    main: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f356.png',     // 肉
+    dessert: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f368.png',  // アイスクリーム
+  },
 };
 
 // ------------------------------------------------------------

@@ -5,3 +5,4 @@ export { KitchenSprite } from './KitchenSprite';
 export { EntranceSprite } from './EntranceSprite';
 export { RegisterSprite } from './RegisterSprite';
 export { FloorSprite } from './FloorSprite';
+export { MealSprite } from './MealSprite';

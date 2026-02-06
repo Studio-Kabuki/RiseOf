@@ -432,6 +432,17 @@ export class StaffSystem implements GameSystem {
 
     if (targetCustomer && targetCustomer.state === 'waiting') {
       updateCustomer(targetCustomer.id, { state: 'eating' });
+
+      // テーブル上に料理を表示
+      const { addMeal } = useRestaurantStore.getState();
+      const servingPosition = calculateServingPosition(
+        targetCustomer.position,
+        targetCustomer.direction,
+        targetCustomer.servingOffset
+      );
+      // 料理のカテゴリを取得（orderedFoodのカテゴリ、なければ'main'）
+      const category = targetCustomer.orderedFood?.category || 'main';
+      addMeal(targetCustomer.id, servingPosition, category);
     }
 
     // 注文を削除

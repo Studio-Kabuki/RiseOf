@@ -6,6 +6,7 @@ import {
   CustomerSprite,
   StaffSprite,
   KitchenSprite,
+  MealSprite,
 } from './sprites';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
@@ -33,6 +34,7 @@ export function RestaurantMap() {
   // スプライト管理
   const customerSpritesRef = useRef<Map<string, CustomerSprite>>(new Map());
   const staffSpritesRef = useRef<Map<string, StaffSprite>>(new Map());
+  const mealSpritesRef = useRef<Map<string, MealSprite>>(new Map());
   const dynamicContainerRef = useRef<Container | null>(null);
   const kitchenSpriteRef = useRef<KitchenSprite | null>(null);
 
@@ -120,6 +122,31 @@ export function RestaurantMap() {
     if (kitchenSpriteRef.current) {
       kitchenSpriteRef.current.update(currentRestaurant.kitchen);
     }
+
+    // Mealスプライト更新
+    const mealSprites = mealSpritesRef.current;
+    const currentMeals = useRestaurantStore.getState().meals;
+    const mealIds = new Set(currentMeals.map((m) => m.id));
+
+    // 不要なスプライトを削除
+    for (const [id, sprite] of mealSprites) {
+      if (!mealIds.has(id)) {
+        dynamicContainer.removeChild(sprite);
+        sprite.destroy();
+        mealSprites.delete(id);
+      }
+    }
+
+    // スプライトを更新または作成
+    for (const meal of currentMeals) {
+      let sprite = mealSprites.get(meal.id);
+      if (!sprite) {
+        sprite = new MealSprite(meal);
+        dynamicContainer.addChild(sprite);
+        mealSprites.set(meal.id, sprite);
+      }
+      sprite.update(meal);
+    }
   };
 
   // Pixi.js初期化
@@ -176,7 +203,13 @@ export function RestaurantMap() {
           ICONS.staff.delivering,
           ICONS.staff.serving,
         ];
-        await Assets.load([...menuIconUrls, ...staffIconUrls]);
+        // テーブル上の料理アイコン
+        const tableMealIconUrls = [
+          ICONS.tableMeal.snack,
+          ICONS.tableMeal.main,
+          ICONS.tableMeal.dessert,
+        ];
+        await Assets.load([...menuIconUrls, ...staffIconUrls, ...tableMealIconUrls]);
 
         if (!containerRef.current) return;
 
@@ -580,6 +613,7 @@ export function RestaurantMap() {
       // スプライトマップをクリア
       customerSpritesRef.current.clear();
       staffSpritesRef.current.clear();
+      mealSpritesRef.current.clear();
       dynamicContainerRef.current = null;
       kitchenSpriteRef.current = null;
       worldContainerRef.current = null;

@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import type { Restaurant, Order, Seat, Food, MenuItem } from '../types';
+import type { MenuCategory } from '../types/menu';
 import type { StaffPositionData, SpawnPointData } from '../utils/tmxParser';
+
+// テーブル上の料理の型
+export interface TableMeal {
+  id: string;
+  customerId: string;
+  position: { x: number; y: number };
+  category: MenuCategory;
+}
 import {
   ENTRANCE_POSITION,
   EXIT_POSITION,
@@ -76,6 +85,9 @@ interface RestaurantState {
 
   // お金エフェクト
   moneyEffects: Array<{ id: string; amount: number; x: number; y: number; createdAt: number }>;
+
+  // テーブル上の料理
+  meals: TableMeal[];
 
   // TMXから読み込んだ位置データ
   staffPositions: StaffPositionData[]; // スタッフ初期位置
@@ -159,6 +171,11 @@ interface RestaurantState {
   removeMoneyEffect: (id: string) => void;
   clearMoneyEffects: () => void;
 
+  // テーブル上料理アクション
+  addMeal: (customerId: string, position: { x: number; y: number }, category: MenuCategory) => string;
+  removeMeal: (customerId: string) => void;
+  clearMeals: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -199,6 +216,9 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   // お金エフェクト
   moneyEffects: [],
+
+  // テーブル上の料理
+  meals: [],
 
   // TMXから読み込んだ位置データ
   staffPositions: [],
@@ -679,6 +699,25 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     set({ moneyEffects: [] });
   },
 
+  // テーブル上料理アクション
+  addMeal: (customerId: string, position: { x: number; y: number }, category: MenuCategory) => {
+    const id = `meal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    set((state) => ({
+      meals: [...state.meals, { id, customerId, position, category }],
+    }));
+    return id;
+  },
+
+  removeMeal: (customerId: string) => {
+    set((state) => ({
+      meals: state.meals.filter((meal) => meal.customerId !== customerId),
+    }));
+  },
+
+  clearMeals: () => {
+    set({ meals: [] });
+  },
+
   reset: () => {
     orderIdCounter = 0;
     foodIdCounter = 0;
@@ -710,6 +749,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       tableUnlockLevel: 0, // 初期解放レベルにリセット（index=0のみ）
       // エフェクトのリセット
       moneyEffects: [],
+      // 料理のリセット
+      meals: [],
     });
   },
 }));
