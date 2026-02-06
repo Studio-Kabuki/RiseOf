@@ -389,6 +389,7 @@ export function PreparePhaseScreen() {
 
   return (
     <div
+      className="win98-scrollbar"
       style={{
         position: 'absolute',
         top: 0,
@@ -398,31 +399,64 @@ export function PreparePhaseScreen() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         fontFamily: 'inherit',
         backgroundColor: '#FFFEF0',
         padding: 16,
         overflow: 'auto',
       }}
     >
+      {/* Windows98風スクロールバーのスタイル */}
+      <style>{`
+        .win98-scrollbar::-webkit-scrollbar {
+          width: 16px;
+          height: 16px;
+        }
+        .win98-scrollbar::-webkit-scrollbar-track {
+          background: #C0C0C0;
+          border: 1px solid #808080;
+        }
+        .win98-scrollbar::-webkit-scrollbar-thumb {
+          background: #C0C0C0;
+          border-top: 2px solid #FFFFFF;
+          border-left: 2px solid #FFFFFF;
+          border-bottom: 2px solid #404040;
+          border-right: 2px solid #404040;
+        }
+        .win98-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #D4D0C8;
+        }
+        .win98-scrollbar::-webkit-scrollbar-button {
+          background: #C0C0C0;
+          border-top: 2px solid #FFFFFF;
+          border-left: 2px solid #FFFFFF;
+          border-bottom: 2px solid #404040;
+          border-right: 2px solid #404040;
+          display: block;
+          height: 16px;
+          width: 16px;
+        }
+      `}</style>
+
       {phase === 'menu' ? (
         /* メニュー選択画面 */
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', width: '100%', maxWidth: 500 }}>
           <h2 style={{
             backgroundColor: '#800000',
             color: '#FFFFFF',
-            padding: '12px 24px',
-            marginBottom: 24,
+            padding: '8px 16px',
+            marginBottom: 16,
             fontWeight: 'bold',
+            fontSize: 14,
           }}>
             *** 仕入れの提案がありました！ ***
           </h2>
 
-          <div style={{ marginBottom: 16, fontSize: 14, color: '#666666' }}>
+          <div style={{ marginBottom: 12, fontSize: 12, color: '#666666' }}>
             本日のメニューを1つ選んでください
           </div>
 
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
             {menuOptions.map((menu) => (
               <MenuResumeCard
                 key={menu.id}
@@ -448,7 +482,7 @@ export function PreparePhaseScreen() {
           maxWidth: 700,
         }}>
           {/* メインコンテンツ */}
-          <div style={{ flex: 1, textAlign: 'center', overflow: 'auto', paddingBottom: 120 }}>
+          <div className="win98-scrollbar" style={{ flex: 1, textAlign: 'center', overflow: 'auto', paddingBottom: 120 }}>
             <h2 style={{
               backgroundColor: '#4B0082',
               color: '#FFFFFF',
