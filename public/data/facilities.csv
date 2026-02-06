@@ -1,17 +1,17 @@
 disabled,id,name,icon,incomeMoney,incomeLit,rarity,attribute
 number,string,string,string,number,number,string,string
-0,milano_doria,ナポリ風ドリア,https://img.icons8.com/color/96/rice-bowl.png,30,0,common,meat
-0,carbonara,,https://img.icons8.com/color/96/spaghetti.png,35,0,rare,pasta
-0,peperoncino,ペペロンチーノ,https://img.icons8.com/color/96/spaghetti.png,20,0,common,pasta
-0,tarako_sicily,タラコソースシシリー風,https://img.icons8.com/color/96/spaghetti.png,40,0,rare,pasta
-0,wakadori_grill,若鶏のグリル,https://img.icons8.com/color/96/grilled-chicken.png,45,0,rare,meat
-0,hamburg,ハンバーグステーキ,https://img.icons8.com/color/96/hamburger.png,35,0,common,meat
-0,karami_chicken,辛味チキン,https://img.icons8.com/color/96/chicken-leg.png,25,0,common,meat
-0,rib_steak,リブステーキ,https://img.icons8.com/color/96/steak.png,55,0,epic,meat
-0,tiramisu,ティラミス クラシコ,https://img.icons8.com/color/96/cake.png,20,1,common,sweets
-0,italian_pudding,イタリアンプリン,https://img.icons8.com/color/96/pudding.png,15,1,common,sweets
-0,panna_cotta,パンナコッタ,https://img.icons8.com/color/96/creme-brulee.png,25,1,rare,sweets
-0,drink_bar,ドリンクバー,https://img.icons8.com/color/96/soda-cup.png,10,1,common,drink
-0,decanta_wine,デカンタワイン赤,https://img.icons8.com/color/96/wine-bottle.png,15,2,rare,drink
-0,espresso,エスプレッソ,https://img.icons8.com/color/96/espresso-cup.png,12,1,common,drink
-0,lambrusco,ランブルスコ,https://img.icons8.com/color/96/champagne.png,20,3,epic,drink
+0,milano_doria,ナポリ風ドリア,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35a.png,30,0,common,meat
+0,carbonara,,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35d.png,35,0,rare,pasta
+0,peperoncino,ペペロンチーノ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35d.png,20,0,common,pasta
+0,tarako_sicily,タラコソースシシリー風,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35d.png,40,0,rare,pasta
+0,wakadori_grill,若鶏のグリル,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f357.png,45,0,rare,meat
+0,hamburg,ハンバーグステーキ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f354.png,35,0,common,meat
+0,karami_chicken,辛味チキン,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f357.png,25,0,common,meat
+0,rib_steak,リブステーキ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f969.png,55,0,epic,meat
+0,tiramisu,ティラミス クラシコ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f370.png,20,1,common,sweets
+0,italian_pudding,イタリアンプリン,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f36e.png,15,1,common,sweets
+0,panna_cotta,パンナコッタ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f36e.png,25,1,rare,sweets
+0,drink_bar,ドリンクバー,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f964.png,10,1,common,drink
+0,decanta_wine,デカンタワイン赤,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f377.png,15,2,rare,drink
+0,espresso,エスプレッソ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2615.png,12,1,common,drink
+0,lambrusco,ランブルスコ,https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f37e.png,20,3,epic,drink

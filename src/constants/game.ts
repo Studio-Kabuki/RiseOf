@@ -181,16 +181,16 @@ export const calculateRent = (day: number): number => {
 // アイコンURL設定
 // ------------------------------------------------------------
 export const ICONS = {
-  doria: 'https://img.icons8.com/fluency/48/rice-bowl.png',
+  doria: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f35a.png',
   // 汎用料理アイコン（個別メニューアイコンがない場合に使用）
-  meal: 'https://img.icons8.com/fluency/48/meal.png',
+  meal: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f37d.png',
   // メニューがない時のはてなアイコン
-  question: 'https://img.icons8.com/fluency/48/help.png',
+  question: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2753.png',
   staff: {
-    movingToKitchen: 'https://img.icons8.com/fluency/48/running.png',
-    pickingFood: 'https://img.icons8.com/fluency/48/cooking-pot.png',
-    delivering: 'https://img.icons8.com/fluency/48/waiter.png',
-    serving: 'https://img.icons8.com/fluency/48/restaurant.png',
+    movingToKitchen: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3c3.png',
+    pickingFood: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f373.png',
+    delivering: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d1-200d-1f373.png',
+    serving: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f374.png',
   },
 };
 

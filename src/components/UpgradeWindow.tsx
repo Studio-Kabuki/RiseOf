@@ -15,19 +15,19 @@ const upgradeOptions: UpgradeOption[] = [
     type: 'table',
     title: 'テーブル解放',
     description: '新しいテーブルを解放',
-    icon: 'https://img.icons8.com/fluency/48/dining-table.png',
+    icon: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1fa91.png', // 椅子
   },
   {
     type: 'staff',
     title: '店員枠拡張',
     description: '店員スロットを+1',
-    icon: 'https://img.icons8.com/fluency/48/waiter.png',
+    icon: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d1-200d-1f373.png', // 料理人
   },
   {
     type: 'menu',
     title: 'メニュー枠拡張',
     description: 'メニュースロットを+1',
-    icon: 'https://img.icons8.com/fluency/48/menu.png',
+    icon: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4dc.png', // 巻物
   },
 ];
 
