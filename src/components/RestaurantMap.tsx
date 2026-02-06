@@ -169,6 +169,8 @@ export function RestaurantMap() {
         // アイコン画像をプリロード
         const menuIconUrls = menuPool.map((menu) => menu.iconUrl);
         const staffIconUrls = [
+          ICONS.meal,
+          ICONS.question,
           ICONS.staff.movingToKitchen,
           ICONS.staff.pickingFood,
           ICONS.staff.delivering,
