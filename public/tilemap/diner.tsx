@@ -3716,8 +3716,9 @@
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>
- <tile id="742">
+ <tile id="742" type="meal">
   <properties>
+   <property name="category" value="dessert"/>
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>
@@ -3726,8 +3727,9 @@
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>
- <tile id="744">
+ <tile id="744" type="meal">
   <properties>
+   <property name="category" value="snack"/>
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>
@@ -3871,8 +3873,9 @@
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>
- <tile id="773">
+ <tile id="773" type="meal">
   <properties>
+   <property name="category" value="main"/>
    <property name="collision" type="bool" value="false"/>
   </properties>
  </tile>

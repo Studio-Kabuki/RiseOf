@@ -57,7 +57,7 @@
         "diner.tmx"
     ],
     "project": "untitled.tiled-project",
-    "property.type": "bool",
+    "property.type": "string",
     "recentFiles": [
         "diner.tsx",
         "50sdiner_room_door_tiles1.tsx",
