@@ -11,7 +11,7 @@ import {
 import { CANVAS_WIDTH, CANVAS_HEIGHT, ICONS } from '../constants/game';
 import { loadMenusFromCSV, getMenuPool } from '../data/menuLoader';
 import { parseTmxFile, initCollisionFromTmx } from '../utils/tmxParser';
-import { parseTmxForRendering, loadTilesetTextures, renderTmxMap } from '../utils/tmxRenderer';
+import { parseTmxForRendering, loadTilesetTextures, renderTmxMap, setGlobalTilesets } from '../utils/tmxRenderer';
 import { getGridInfo, onDebugCollisionChange, isDebugCollisionVisible } from '../utils/pathfinding';
 import { usePostEffects } from '../hooks/usePostEffects';
 import { PostEffectDebugPanel } from './ui/PostEffectDebugPanel';
@@ -203,13 +203,7 @@ export function RestaurantMap() {
           ICONS.staff.delivering,
           ICONS.staff.serving,
         ];
-        // テーブル上の料理アイコン
-        const tableMealIconUrls = [
-          ICONS.tableMeal.snack,
-          ICONS.tableMeal.main,
-          ICONS.tableMeal.dessert,
-        ];
-        await Assets.load([...menuIconUrls, ...staffIconUrls, ...tableMealIconUrls]);
+        await Assets.load([...menuIconUrls, ...staffIconUrls]);
 
         if (!containerRef.current) return;
 
@@ -226,6 +220,8 @@ export function RestaurantMap() {
           const tmxRenderData = await parseTmxForRendering(`${import.meta.env.BASE_URL}tilemap/diner.tmx`);
           // タイルセット画像をロード
           await loadTilesetTextures(tmxRenderData.tilesets);
+          // タイルセットデータをグローバルに保存（MealSprite等から参照）
+          setGlobalTilesets(tmxRenderData.tilesets);
           // TMXマップを描画（ネイティブサイズ）
           const tmxRenderResult = renderTmxMap(tmxRenderData);
           const tmxMapContainer = tmxRenderResult.container;

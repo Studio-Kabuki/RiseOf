@@ -7,7 +7,7 @@ import { Container, Assets, Texture, Rectangle } from 'pixi.js';
 import { CompositeTilemap } from '@pixi/tilemap';
 
 // タイルセット情報
-interface TilesetData {
+export interface TilesetData {
   firstGid: number;
   name: string;
   tileWidth: number;
@@ -16,6 +16,19 @@ interface TilesetData {
   tileCount: number;
   imageUrl: string;
   texture?: Texture;
+}
+
+// グローバルに保存するタイルセットデータ（MealSprite等から参照）
+let globalTilesets: TilesetData[] = [];
+
+// タイルセットデータを設定
+export function setGlobalTilesets(tilesets: TilesetData[]): void {
+  globalTilesets = tilesets;
+}
+
+// タイルセットデータを取得
+export function getGlobalTilesets(): TilesetData[] {
+  return globalTilesets;
 }
 
 // チャンク情報
@@ -358,7 +371,7 @@ function getRotationFromFlags(flipH: boolean, flipV: boolean, flipD: boolean): n
 }
 
 // タイルのテクスチャ情報を取得
-function getTileFrame(
+export function getTileFrame(
   gid: number,
   tilesets: TilesetData[]
 ): { texture: Texture; frame: Rectangle; rotate: number } | null {
